@@ -297,15 +297,15 @@
 
 <div class="main-wrapper">
     <h2>💰 挑戰 100 元大進擊！</h2>
-    <p class="subtitle">二年級數學：10個 1元 換 1個 10元</p>
+    <p class="subtitle">10個 1元 換 1個 10元</p>
 
     <!-- 10元硬幣累積展示區 (錢包) -->
     <div id="wallet-container">
-        <div class="wallet-title">我的 10 元：</div>
+        <div class="wallet-title">我的10 元硬幣：</div>
         <div id="tens-display"><span style="color: #94a3b8; font-size: 12px;">(還沒有 10 元，快來收集！)</span></div>
     </div>
 
-    <div id="scoreboard">目前總金額：<span id="total-money">0</span> 元 ( <span id="tens-count">0</span>個十，<span id="ones-count">0</span>個一 )</div>
+    <div id="scoreboard">目前總金額：<span id="total-money">0</span> 元 ( <span id="tens-count">0</span>個 10，<span id="ones-count">0</span>個 1 )</div>
 
     <!-- 遊戲主畫面容器 -->
     <div id="game-container">
@@ -319,7 +319,7 @@
         <!-- 底部 1元 收集區與右側統計數字 -->
         <div id="bottom-panel">
             <div id="collection-area"></div>
-            <div id="ones-counter-box">1元：<span id="current-ones-num">0</span>/10</div>
+            <div id="ones-counter-box">1元：<span id="current-ones-num">0</span>個</div>
         </div>
     </div>
 
@@ -509,7 +509,7 @@
 
         if (tensCount === 10) {
             playSound('win');
-            document.getElementById('message-box').innerHTML = "🏆 太神啦！10個 10元 剛好等於 **100元**！通關成功！🎉";
+            document.getElementById('message-box').innerHTML = "🏆 太棒了！10個 10元 剛好等於 **100元**！通關成功！🎉";
             document.getElementById('collection-area').innerHTML = '';
             
             const container = document.getElementById('game-container');
