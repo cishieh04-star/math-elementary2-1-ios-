@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>趣味數學：1元硬幣大進擊！</title>
+    <style>
+        /* CSS 變數與通用設定：確保在任何平板或手機上都能完美適應畫面 */
+        body {
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #f0fdf4, #e0f2fe);
+            margin: 0;
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .main-wrapper {
+            width: 100%;
+            max-width: 520px;
+            max-height: 98vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 4px solid #cbd5e1;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 10px 15px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        h2 {
+            color: #1e293b;
+            margin: 2px 0;
+            font-size: clamp(18px, 4vw, 22px);
+        }
+
+        p.subtitle {
+            margin: 2px 0 6px 0;
+            font-size: clamp(12px, 2.5vw, 13px);
+            color: #475569;
+        }
+
+        /* 錢包/十元展示區 */
+        #wallet-container {
+            width: 100%;
+            background: #fffbeb;
+            border: 2px solid #f59e0b;
+            border-radius: 10px;
+            padding: 5px 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+            margin-bottom: 5px;
+            min-height: 40px;
+        }
+        .wallet-title {
+            font-weight: bold;
+            color: #b45309;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        #tens-display {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .ten-coin {
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #fcd34d 60%, #f59e0b 100%);
+            border: 2px solid #b45309;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #78350f;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.2);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #scoreboard {
+            font-size: clamp(14px, 3vw, 16px);
+            font-weight: bold;
+            color: #0369a1;
+            background: #f8fafc;
+            padding: 4px 12px;
+            border-radius: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            margin-bottom: 5px;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* 遊戲主畫面容器 (固定合適高度，不超出平板畫面) */
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 270px;
+            background: #f8fafc;
+            border: 3px dashed #cbd5e1;
+            border-radius: 12px;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* 首頁覆蓋畫面 */
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            border-radius: 10px;
+            text-align: center;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        #start-screen h1 {
+            color: #d97706;
+            font-size: clamp(22px, 5vw, 28px);
+            margin-bottom: 5px;
+        }
+        #start-screen p {
+            color: #475569;
+            font-size: clamp(13px, 3vw, 15px);
+            margin-bottom: 15px;
+        }
+
+        /* 掉落的 1 元硬幣 */
+        .coin {
+            position: absolute;
+            width: 55px;
+            height: 55px;
+            background: radial-gradient(circle, #fef08a 60%, #eab308 100%);
+            border: 3px dashed #ca8a04;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #713f12;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            animation: fall linear forwards;
+            transition: transform 0.1s;
+            z-index: 10;
+        }
+        .coin:hover {
+            transform: scale(1.15);
+        }
+        @keyframes fall {
+            0% { top: -65px; }
+            100% { top: 205px; }
+        }
+
+        /* 底部面板 */
+        #bottom-panel {
+            position: absolute;
+            bottom: 6px;
+            left: 8px;
+            right: 8px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #collection-area {
+            flex-grow: 1;
+            height: 100%;
+            background: #ffffff;
+            border: 2px dashed #94a3b8;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            padding: 0 5px;
+            gap: 3px;
+            overflow-x: auto;
+        }
+        .collected-coin {
+            width: 28px;
+            height: 28px;
+            background: #fef08a;
+            border: 2px solid #ca8a04;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #713f12;
+            flex-shrink: 0;
+            animation: popIn 0.3s;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        #ones-counter-box {
+            background: #e0f2fe;
+            border: 2px solid #0284c7;
+            border-radius: 8px;
+            padding: 0 8px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: bold;
+            color: #0369a1;
+            flex-shrink: 0;
+        }
+
+        #message-box {
+            font-size: clamp(13px, 2.8vw, 15px);
+            font-weight: bold;
+            color: #16a34a;
+            margin: 5px 0;
+            min-height: 20px;
+            text-align: center;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 2px;
+        }
+        .control-btn {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 6px 18px;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+            font-weight: bold;
+        }
+        .control-btn:hover {
+            background-color: #1d4ed8;
+        }
+        #pause-btn {
+            background-color: #d97706;
+            display: none;
+        }
+        #next-btn {
+            background-color: #16a34a;
+            display: none;
+        }
+
+        .hundred-badge {
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #fef08a 40%, #eab308 80%, #ca8a04 100%);
+            border: 3px solid #a16207;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #713f12;
+            box-shadow: 0 4px 10px rgba(234,179,8,0.5);
+            margin: 5px auto;
+            animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            60% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <h2>💰 挑戰 100 元大進擊！</h2>
+    <p class="subtitle">10個 1元 換 1個 10元</p>
+
+    <!-- 10元硬幣累積展示區 (錢包) -->
+    <div id="wallet-container">
+        <div class="wallet-title">我的10 元硬幣：</div>
+        <div id="tens-display"><span style="color: #94a3b8; font-size: 12px;">(還沒有 10 元，快來收集！)</span></div>
+    </div>
+
+    <div id="scoreboard">目前總金額：<span id="total-money">0</span> 元 ( <span id="tens-count">0</span>個 10，<span id="ones-count">0</span>個 1 )</div>
+
+    <!-- 遊戲主畫面容器 -->
+    <div id="game-container">
+        <!-- 首頁畫面 (覆蓋在遊戲上方) -->
+        <div id="start-screen">
+            <h1>🏆 數學小達人冒險</h1>
+            <p>準備好收集 1 元硬幣，挑戰 100 元了嗎？</p>
+            <button class="control-btn" style="font-size: 16px; padding: 10px 24px;" onclick="startGame()">點擊開始遊戲！</button>
+        </div>
+
+        <!-- 底部 1元 收集區與右側統計數字 -->
+        <div id="bottom-panel">
+            <div id="collection-area"></div>
+            <div id="ones-counter-box">1元：<span id="current-ones-num">0</span>個</div>
+        </div>
+    </div>
+
+    <div id="message-box">點擊上方按鈕開始遊戲！</div>
+
+    <div class="btn-group">
+        <button id="pause-btn" class="control-btn" onclick="togglePause()">暫停遊戲</button>
+        <button id="next-btn" class="control-btn" onclick="resumeGame()">繼續收集下一個 10 元！</button>
+    </div>
+</div>
+
+<script>
+    let onesCount = 0; 
+    let tensCount = 0; 
+    let gameInterval = null;
+    let audioCtx = null;
+    let isPaused = false;
+    let activeCoins = [];
+
+    function playSound(type) {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'click') {
+            osc.frequency.setValueAtTime(650, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(950, audioCtx.currentTime + 0.08);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.08);
+        } else if (type === 'success') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.12);
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.24);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        } else if (type === 'win') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(450, audioCtx.currentTime + 0.15);
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.3);
+            osc.frequency.setValueAtTime(900, audioCtx.currentTime + 0.45);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.7);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.7);
+        }
+    }
+
+    function updateScoreboard() {
+        let total = (tensCount * 10) + onesCount;
+        document.getElementById('total-money').innerText = total;
+        document.getElementById('tens-count').innerText = tensCount;
+        document.getElementById('ones-count').innerText = onesCount;
+        document.getElementById('current-ones-num').innerText = onesCount;
+    }
+
+    function startGame() {
+        // 隱藏首頁
+        document.getElementById('start-screen').style.display = 'none';
+
+        tensCount = 0;
+        onesCount = 0;
+        isPaused = false;
+        document.getElementById('tens-display').innerHTML = '<span style="color: #94a3b8; font-size: 12px;">(還沒有 10 元，快來收集！)</span>';
+        document.getElementById('collection-area').innerHTML = '';
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('pause-btn').style.display = 'inline-block';
+        document.getElementById('pause-btn').innerText = "暫停遊戲";
+        
+        // 移除可能存在的 100元金幣
+        const oldBadge = document.querySelector('.hundred-badge');
+        if (oldBadge) oldBadge.remove();
+
+        updateScoreboard();
+        runGameLoop();
+    }
+
+    function runGameLoop() {
+        document.getElementById('message-box').innerText = "快點擊掉下來的 1 元硬幣！";
+        if (gameInterval) clearInterval(gameInterval);
+
+        gameInterval = setInterval(() => {
+            if (isPaused) return;
+            if (tensCount >= 10) {
+                clearInterval(gameInterval);
+                return;
+            }
+            createCoin();
+        }, 1100);
+    }
+
+    function createCoin() {
+        if (isPaused) return;
+        const container = document.getElementById('game-container');
+        const coin = document.createElement('div');
+        coin.className = 'coin';
+        coin.innerText = '$1';
+
+        const randomX = Math.random() * (container.clientWidth - 65);
+        coin.style.left = randomX + 'px';
+        
+        const duration = 3 + Math.random() * 1.2;
+        coin.style.animationDuration = duration + 's';
+
+        activeCoins.push(coin);
+
+        coin.onclick = function(e) {
+            e.stopPropagation();
+            if (isPaused || onesCount >= 10) return;
+
+            playSound('click');
+            onesCount++;
+            updateScoreboard();
+
+            const collectionArea = document.getElementById('collection-area');
+            const collectedCoin = document.createElement('div');
+            collectedCoin.className = 'collected-coin';
+            collectedCoin.innerText = '1';
+            collectionArea.appendChild(collectedCoin);
+
+            activeCoins = activeCoins.filter(c => c !== coin);
+            coin.remove();
+
+            if (onesCount === 10) {
+                triggerTenExchange();
+            }
+        };
+
+        coin.addEventListener('animationend', () => {
+            activeCoins = activeCoins.filter(c => c !== coin);
+            coin.remove();
+        });
+
+        container.appendChild(coin);
+    }
+
+    function togglePause() {
+        isPaused = !isPaused;
+        const pauseBtn = document.getElementById('pause-btn');
+        
+        if (isPaused) {
+            pauseBtn.innerText = "繼續遊戲";
+            pauseBtn.style.backgroundColor = "#16a34a";
+            document.getElementById('message-box').innerHTML = "⏸️ 遊戲已暫停，可以安心去上洗手間喔！";
+            activeCoins.forEach(c => {
+                c.style.animationPlayState = 'paused';
+            });
+        } else {
+            pauseBtn.innerText = "暫停遊戲";
+            pauseBtn.style.backgroundColor = "#d97706";
+            document.getElementById('message-box').innerHTML = "▶️ 遊戲繼續！快點擊硬幣！";
+            activeCoins.forEach(c => {
+                c.style.animationPlayState = 'running';
+            });
+        }
+    }
+
+    function triggerTenExchange() {
+        clearInterval(gameInterval);
+        activeCoins.forEach(c => c.remove());
+        activeCoins = [];
+
+        tensCount++; 
+        onesCount = 0; 
+        updateScoreboard();
+
+        const tensDisplay = document.getElementById('tens-display');
+        if (tensCount === 1) {
+            tensDisplay.innerHTML = ''; 
+        }
+        
+        const newTenCoin = document.createElement('div');
+        newTenCoin.className = 'ten-coin';
+        newTenCoin.innerText = `$10`;
+        tensDisplay.appendChild(newTenCoin);
+
+        document.getElementById('pause-btn').style.display = 'none';
+
+        if (tensCount === 10) {
+            playSound('win');
+            document.getElementById('message-box').innerHTML = "🏆 太棒了！10個 10元 剛好等於 **100元**！通關成功！🎉";
+            document.getElementById('collection-area').innerHTML = '';
+            
+            const container = document.getElementById('game-container');
+            const badge = document.createElement('div');
+            badge.className = 'hundred-badge';
+            badge.innerText = '$100';
+            container.appendChild(badge);
+
+            // 顯示首頁畫面讓使用者可以重新開始
+            const startScreen = document.getElementById('start-screen');
+            startScreen.style.display = 'flex';
+            startScreen.querySelector('h1').innerText = "🎉 恭喜通關 100 元！";
+            startScreen.querySelector('p').innerText = "太厲害了，完美掌握了十進位！";
+            startScreen.querySelector('button').innerText = "再玩一次挑戰";
+            return;
+        }
+
+        playSound('success');
+        document.getElementById('message-box').innerHTML = `🎉 太棒了！10個 1元 換成 **第 ${tensCount} 個 $10元**！`;
+        document.getElementById('collection-area').innerHTML = ''; 
+        document.getElementById('next-btn').style.display = 'inline-block'; 
+    }
+
+    function resumeGame() {
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('pause-btn').style.display = 'inline-block';
+        runGameLoop();
+    }
+</script>
+
+</body>
+</html>
