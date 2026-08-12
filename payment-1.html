@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+<title>互動付錢遊戲 (高靈敏度版)</title>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<style>
+  * { 
+    box-sizing: border-box; 
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  } 
+  
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    overflow: hidden; 
+    font-family: sans-serif; background-color: #f4f4f4;
+  }
+
+  #gameContainer {
+    display: flex; flex-direction: column; height: 100%; width: 100%;
+    max-width: 600px; margin: 0 auto; 
+    position: relative;
+  }
+
+  #startScreen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85); color: #fff; z-index: 9999;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    cursor: pointer;
+  }
+  #startScreen div { font-size: 32px; font-weight: bold; margin-bottom: 20px; padding: 15px 30px; background: #ff9800; border-radius: 10px;}
+
+  #overflowScreen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(239, 68, 68, 0.85); color: #fff; z-index: 8888;
+    display: none; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; padding: 20px;
+  }
+  #overflowScreen h2 { font-size: 36px; margin-bottom: 10px; }
+  #overflowScreen p { font-size: 22px; margin-bottom: 25px; }
+  .refund-btn {
+    font-size: 26px; font-weight: bold; padding: 15px 35px;
+    background: #ffffff; color: #dc2626; border: none; border-radius: 15px;
+    cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .refund-btn:active { transform: scale(0.95); }
+
+  .header {
+    padding: 8px 10px; text-align: center; background: #fff;
+    flex: 0 0 auto; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .box-icon { font-size: 30px; line-height: 1; }
+  .target-display { font-size: 26px; font-weight: bold; color: #d32f2f; }
+  
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .score-display { font-size: 16px; font-weight: bold; color: #334155; background: #f1f5f9; padding: 6px 10px; border-radius: 8px; }
+
+  .pause-btn {
+    font-size: 16px; font-weight: bold; padding: 8px 16px;
+    background: #f59e0b; color: white; border: none; border-radius: 10px;
+    cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+  .pause-btn:active { transform: scale(0.95); }
+
+  #warningMsg { font-size: 15px; font-weight: bold; color: #e65100; height: 20px; background: #fff; text-align: center; }
+
+  .drop-field {
+    flex: 1 1 auto; 
+    margin: 10px; padding: 10px;
+    border: 3px dashed #aaa; background: #eef; border-radius: 15px;
+    position: relative;
+    overflow: hidden;
+    /* 提升觸控滑動或點擊效能 */
+    touch-action: none; 
+  }
+
+  .tray {
+    height: 90px;
+    flex: 0 0 auto; 
+    margin: 0 10px 10px 10px; padding: 10px;
+    border: 2px solid #cbd5e1; background: #ffffff; border-radius: 12px;
+    display: flex; flex-wrap: wrap; align-content: flex-start; gap: 5px;
+    overflow-y: auto;
+  }
+
+  .wallet {
+    height: 70px; flex: 0 0 auto; 
+    display: flex; justify-content: center; align-items: center;
+    background: #cfd8dc; box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+    padding-bottom: env(safe-area-inset-bottom); 
+    font-size: 18px; font-weight: bold; color: #334155;
+  }
+
+  .coin {
+    border-radius: 50%; display: flex; justify-content: center; align-items: center; 
+    font-weight: bold; color: #333; cursor: pointer;
+    box-shadow: 1px 3px 5px rgba(0,0,0,0.3); transition: transform 0.1s;
+  }
+  .coin:active { transform: scale(0.9); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+  
+  .coin-10 { background-color: #FFD700; border: 2px solid #DAA520; }
+  .coin-5  { background-color: #E2E8F0; border: 2px solid #94A3B8; }
+  .coin-1  { background-color: #F0F8FF; border: 2px solid #B0C4DE; }
+
+  .drop-field .coin {
+    position: absolute;
+    width: 68px; height: 68px; font-size: 26px;
+    animation: fall linear forwards;
+    z-index: 10;
+  }
+
+  @keyframes fall {
+    0% { top: -75px; }
+    100% { top: 310px; }
+  }
+
+  .tray .coin { width: 38px; height: 38px; font-size: 16px; }
+</style>
+</head>
+<body>
+
+  <div id="startScreen">
+    <div>▶ 點擊開始遊戲</div>
+  </div>
+
+  <div id="overflowScreen">
+    <h2>⚠️ 哎呀，金額超過囉！</h2>
+    <p>你收集的錢比目標金額還要多喔～</p>
+    <button class="refund-btn" onclick="refundAndResume()">🔄 全部退回，重新開始</button>
+  </div>
+
+  <div id="gameContainer">
+    <div class="header">
+      <div class="header-left">
+        <div class="box-icon">🎁</div>
+        <div class="target-display">要付 <span id="displayTarget">?</span> 元</div>
+      </div>
+      <div class="header-right">
+        <div class="score-display">已完成: <span id="successCount">0</span> 關</div>
+        <button class="pause-btn" id="pauseBtn" onclick="togglePause()">⏸ 暫停</button>
+      </div>
+    </div>
+    <div id="warningMsg"></div>
+    
+    <div class="drop-field" id="dropField"></div>
+    <div class="tray" id="trayCoins"></div>
+
+    <div class="wallet" id="wallet">
+      已收集金額：<span id="currentAmount">0</span> 元
+    </div>
+  </div>
+
+<script>
+  let count10 = 0; 
+  let count5 = 0;  
+  let count1 = 0;  
+  let currentTarget = 0;
+  let successCount = 0; 
+  let audioUnlocked = false; 
+  let isWinning = false;
+  let isPaused = false;
+  let dropInterval = null;
+  let activeCoins = [];
+
+  const displayTarget = document.getElementById('displayTarget');
+  const successCountSpan = document.getElementById('successCount');
+  const trayCoins = document.getElementById('trayCoins');
+  const dropField = document.getElementById('dropField');
+  const startScreen = document.getElementById('startScreen');
+  const overflowScreen = document.getElementById('overflowScreen');
+  const currentAmountSpan = document.getElementById('currentAmount');
+  const warningMsg = document.getElementById('warningMsg');
+  const pauseBtn = document.getElementById('pauseBtn');
+  
+  let audioCtx;
+  function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playTone(freq, type, duration, vol = 0.5) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.type = type; 
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  }
+
+  function playDropSound() { playTone(400, 'square', 0.1, 0.2); }
+  function playPickupSound() { playTone(800, 'sine', 0.1, 0.3); }
+  function playExchangeSound() { playTone(900, 'triangle', 0.2, 0.4); }
+  function playErrorSound() {
+    playTone(150, 'sawtooth', 0.2, 0.4);
+    setTimeout(() => playTone(100, 'sawtooth', 0.3, 0.4), 150);
+  }
+  function playCheerSound() {
+    playTone(523.25, 'sine', 0.2, 0.5); 
+    setTimeout(() => playTone(659.25, 'sine', 0.2, 0.5), 150); 
+    setTimeout(() => playTone(783.99, 'sine', 0.3, 0.5), 300); 
+    setTimeout(() => playTone(1046.50, 'square', 0.5, 0.4), 450); 
+  }
+
+  function speakText(text, speedRate) {
+    if (!audioUnlocked) return;
+    window.speechSynthesis.cancel(); 
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'zh-TW';
+    utterance.rate = speedRate; 
+    window.speechSynthesis.speak(utterance);
+  }
+
+  startScreen.addEventListener('click', () => {
+    initAudio();
+    let unlockSpeech = new SpeechSynthesisUtterance('');
+    window.speechSynthesis.speak(unlockSpeech);
+
+    audioUnlocked = true;
+    startScreen.style.display = 'none';
+    successCount = 0; 
+    successCountSpan.innerText = successCount;
+    nextQuestion();
+  });
+
+  function nextQuestion() {
+    isWinning = false;
+    isPaused = false;
+    pauseBtn.innerText = "⏸ 暫停";
+    overflowScreen.style.display = 'none';
+    currentTarget = Math.floor(Math.random() * 40) + 10; 
+    displayTarget.innerText = currentTarget;
+    count10 = 0;
+    count5 = 0;
+    count1 = 0;
+    warningMsg.innerText = "";
+    renderTray(); 
+    
+    if (dropInterval) clearInterval(dropInterval);
+    activeCoins.forEach(c => c.remove());
+    activeCoins = [];
+
+    dropInterval = setInterval(() => {
+      if (!isWinning && !isPaused) spawnFallingCoin();
+    }, 1500);
+
+    setTimeout(() => speakText(`要付，${currentTarget} 元`, 0.85), 300);
+  }
+
+  function togglePause() {
+    if (isWinning) return;
+    isPaused = !isPaused;
+
+    if (isPaused) {
+      pauseBtn.innerText = "▶ 繼續";
+      pauseBtn.style.background = "#16a34a";
+      warningMsg.innerText = "⏸️ 遊戲已暫停，可以慢慢思考喔！";
+      activeCoins.forEach(c => {
+        c.style.animationPlayState = 'paused';
+      });
+    } else {
+      pauseBtn.innerText = "⏸ 暫停";
+      pauseBtn.style.background = "#f59e0b";
+      warningMsg.innerText = "";
+      activeCoins.forEach(c => {
+        c.style.animationPlayState = 'running';
+      });
+    }
+  }
+
+  function spawnFallingCoin() {
+    if (isPaused) return;
+    
+    let rand = Math.random();
+    let coinType = rand > 0.6 ? 10 : (rand > 0.3 ? 5 : 1); 
+
+    const coinEl = document.createElement('div');
+    if (coinType === 10) coinEl.className = 'coin coin-10';
+    else if (coinType === 5) coinEl.className = 'coin coin-5';
+    else coinEl.className = 'coin coin-1';
+    
+    coinEl.innerText = coinType;
+
+    const randomX = Math.random() * (dropField.clientWidth - 75);
+    coinEl.style.left = randomX + 'px';
+    
+    const duration = 3.5 + Math.random() * 1.5;
+    coinEl.style.animationDuration = duration + 's';
+
+    // 提高靈敏度：使用觸碰瞬間 (touchstart) 觸發，不需等待放開
+    const handleCoinTouch = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isWinning || isPaused) return;
+
+      let totalAmount = (count10 * 10) + (count5 * 5) + count1;
+
+      if (totalAmount + coinType > currentTarget) {
+        playErrorSound();
+        triggerOverflowPause();
+      } else {
+        warningMsg.innerText = "";
+        if (coinType === 10) {
+          count10++;
+        } else if (coinType === 5) {
+          count5++;
+          if (count5 >= 2) {
+            count5 -= 2;
+            count10++;
+            setTimeout(() => {
+              playExchangeSound();
+              speakText("兩個五塊錢換成十元囉！", 1.0);
+            }, 200);
+          }
+        } else {
+          count1++;
+          if (count1 >= 10) {
+            count1 -= 10;
+            count10++;
+            setTimeout(() => {
+              playExchangeSound();
+              speakText("10個一塊錢換成十元囉！", 1.0);
+            }, 200);
+          }
+        }
+        playDropSound();
+        renderTray();
+      }
+      coinEl.remove();
+      activeCoins = activeCoins.filter(item => item !== coinEl);
+    };
+
+    // 綁定 touchstart 與 click 確保極高靈敏度
+    coinEl.addEventListener('touchstart', handleCoinTouch, { passive: false });
+    coinEl.addEventListener('click', handleCoinTouch);
+
+    coinEl.addEventListener('animationend', () => {
+      coinEl.remove();
+      activeCoins = activeCoins.filter(item => item !== coinEl);
+    });
+
+    dropField.appendChild(coinEl);
+    activeCoins.push(coinEl);
+  }
+
+  function triggerOverflowPause() {
+    isPaused = true;
+    playErrorSound();
+    speakText("金額超過囉，請退回重新開始！", 1.0);
+
+    activeCoins.forEach(c => {
+      c.style.animationPlayState = 'paused';
+    });
+
+    overflowScreen.style.display = 'flex';
+  }
+
+  function refundAndResume() {
+    playPickupSound();
+    count10 = 0;
+    count5 = 0;
+    count1 = 0;
+    renderTray();
+    
+    activeCoins.forEach(c => c.remove());
+    activeCoins = [];
+
+    overflowScreen.style.display = 'none';
+    isPaused = false;
+    pauseBtn.innerText = "⏸ 暫停";
+    pauseBtn.style.background = "#f59e0b";
+  }
+
+  function removeCoin(val) {
+    if (isWinning || isPaused) return;
+    if (val === 10 && count10 > 0) count10--;
+    else if (val === 5 && count5 > 0) count5--;
+    else if (val === 1 && count1 > 0) count1--;
+    warningMsg.innerText = "";
+    playPickupSound();
+    renderTray(); 
+  }
+
+  function renderTray() {
+    let totalAmount = (count10 * 10) + (count5 * 5) + count1;
+    trayCoins.innerHTML = ''; 
+    currentAmountSpan.innerText = totalAmount;
+
+    for(let i=0; i<count10; i++) {
+      let c = document.createElement('div');
+      c.className = 'coin coin-10';
+      c.innerText = '10';
+      let removeAction = (e) => {
+        if(e) e.preventDefault();
+        removeCoin(10);
+      };
+      c.addEventListener('touchstart', removeAction, { passive: false });
+      c.onclick = removeAction;
+      trayCoins.appendChild(c);
+    }
+
+    for(let i=0; i<count5; i++) {
+      let c = document.createElement('div');
+      c.className = 'coin coin-5';
+      c.innerText = '5';
+      let removeAction = (e) => {
+        if(e) e.preventDefault();
+        removeCoin(5);
+      };
+      c.addEventListener('touchstart', removeAction, { passive: false });
+      c.onclick = removeAction;
+      trayCoins.appendChild(c);
+    }
+
+    for(let i=0; i<count1; i++) {
+      let c = document.createElement('div');
+      c.className = 'coin coin-1';
+      c.innerText = '1';
+      let removeAction = (e) => {
+        if(e) e.preventDefault();
+        removeCoin(1);
+      };
+      c.addEventListener('touchstart', removeAction, { passive: false });
+      c.onclick = removeAction;
+      trayCoins.appendChild(c);
+    }
+
+    if (totalAmount === currentTarget && currentTarget > 0) {
+      isWinning = true; 
+      if (dropInterval) clearInterval(dropInterval);
+      activeCoins.forEach(c => c.remove());
+      activeCoins = [];
+
+      successCount++;
+      successCountSpan.innerText = successCount;
+
+      playCheerSound(); 
+      speakText(`${totalAmount} 元，答對了！`, 1.0); 
+      
+      confetti({
+        particleCount: 150, spread: 80, origin: { y: 0.6 },
+        colors: ['#FFD700', '#ff0000', '#00ff00', '#0000ff']
+      });
+
+      setTimeout(nextQuestion, 3500);
+    } else if (totalAmount < currentTarget && totalAmount > 0) {
+      speakText(`${totalAmount} 元`, 1.3); 
+    }
+  }
+</script>
+</body>
+</html>
