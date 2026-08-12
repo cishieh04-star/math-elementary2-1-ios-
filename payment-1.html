@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
-<title>互動付錢遊戲 (高靈敏度版)</title>
+<title>互動付錢遊戲 (特教慢速友善版)</title>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <style>
   * { 
@@ -76,7 +76,6 @@
     border: 3px dashed #aaa; background: #eef; border-radius: 15px;
     position: relative;
     overflow: hidden;
-    /* 提升觸控滑動或點擊效能 */
     touch-action: none; 
   }
 
@@ -250,9 +249,10 @@
     activeCoins.forEach(c => c.remove());
     activeCoins = [];
 
+    // 調整硬幣出現的頻率（改為 2.2 秒掉落一個，讓畫面更寬鬆）
     dropInterval = setInterval(() => {
       if (!isWinning && !isPaused) spawnFallingCoin();
-    }, 1500);
+    }, 2200);
 
     setTimeout(() => speakText(`要付，${currentTarget} 元`, 0.85), 300);
   }
@@ -294,10 +294,10 @@
     const randomX = Math.random() * (dropField.clientWidth - 75);
     coinEl.style.left = randomX + 'px';
     
-    const duration = 3.5 + Math.random() * 1.5;
+    // 💡 將硬幣掉落時間拉長至 7.0 ~ 10.0 秒（原本是 3.5 ~ 5.0 秒），速度變慢一倍！
+    const duration = 7.0 + Math.random() * 3.0;
     coinEl.style.animationDuration = duration + 's';
 
-    // 提高靈敏度：使用觸碰瞬間 (touchstart) 觸發，不需等待放開
     const handleCoinTouch = (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -340,7 +340,6 @@
       activeCoins = activeCoins.filter(item => item !== coinEl);
     };
 
-    // 綁定 touchstart 與 click 確保極高靈敏度
     coinEl.addEventListener('touchstart', handleCoinTouch, { passive: false });
     coinEl.addEventListener('click', handleCoinTouch);
 
