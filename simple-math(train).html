@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>火車算術大冒險</title>
+    <style>
+        body { 
+            background-color: #e0f7fa; margin: 0; padding: 2vh; height: 100vh; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            font-family: "Microsoft JhengHei", sans-serif; overflow: hidden; 
+            user-select: none; -webkit-user-select: none; touch-action: manipulation;
+        }
+        
+        /* 首頁樣式 */
+        #home-screen { text-align: center; }
+        #start-btn { padding: 4vh 8vh; font-size: 6vh; background: #1976d2; color: white; border: none; border-radius: 3vh; cursor: pointer; box-shadow: 0 1vh #0d47a1; }
+        
+        /* 遊戲介面樣式 */
+        #game-ui { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: space-between; max-width: 580px; }
+        #status-bar { display: flex; justify-content: space-around; width: 100%; font-size: 5vh; font-weight: bold; color: #2c3e50; padding: 1vh 0; border-bottom: 0.5vh solid #b2ebf2; }
+        
+        #visual-area { height: 25vh; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5vw; flex-wrap: wrap; background: #f8fafc; border-radius: 12px; border: 2px dashed #cbd5e1; }
+        
+        /* 火車車廂動畫樣式 */
+        .train-car { font-size: 7vh; transition: transform 1.5s ease-in-out, opacity 1.5s ease-in-out; }
+        .entering { transform: translateX(40vw); opacity: 0; }
+        .exiting { transform: translateX(40vw); opacity: 0; }
+
+        #equation { font-size: 7vh; font-weight: bold; color: #1565c0; margin: 5px 0; }
+        #feedback { font-size: 5vh; color: #d84315; font-weight: bold; height: 6vh; }
+        
+        /* 俄羅斯方塊掉落答案區域 */
+        #drop-game-container {
+            position: relative;
+            width: 100%;
+            height: 150px;
+            background: #f1f5f9;
+            border: 3px solid #cbd5e1;
+            border-radius: 14px;
+            overflow: hidden;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        /* 掉落的方塊選項 */
+        .falling-option {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(circle, #38bdf8 60%, #0284c7 100%);
+            border: 3px solid #0369a1;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            animation: fall linear forwards;
+            z-index: 999;
+            pointer-events: auto;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .falling-option:active { transform: scale(0.9); }
+
+        @keyframes fall {
+            0% { top: -70px; }
+            100% { top: 75px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="home-screen">
+        <h1 style="font-size: 8vh; color: #1976d2;">🚂 火車車廂算術冒險</h1>
+        <button id="start-btn" onclick="initGame()">開始遊戲</button>
+    </div>
+
+    <div id="game-ui">
+        <div id="status-bar">
+            <div id="timer">時間: 00:00</div>
+            <div id="score">闖關: 0</div>
+        </div>
+        <div id="visual-area"></div>
+        <div id="equation">?</div>
+        <div id="feedback">請觀察火車變化...</div>
+        
+        <!-- 俄羅斯方塊掉落答案區域 -->
+        <div id="drop-game-container"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        let currentCount = 3, score = 0, startTime;
+        let gameInterval = null;
+        let activeOptions = [];
+        let isAnswered = false;
+        let currentAns = 0;
+        let audioCtx = null;
+
+        function initGame() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            let unlockSpeech = new SpeechSynthesisUtterance('');
+            window.speechSynthesis.speak(unlockSpeech);
+
+            document.getElementById('home-screen').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'flex';
+            startTime = Date.now();
+            startTimer();
+            playRound();
+        }
+
+        function startTimer() {
+            setInterval(() => {
+                let diff = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('timer').innerText = `時間: ${Math.floor(diff/60).toString().padStart(2,'0')}:${(diff%60).toString().padStart(2,'0')}`;
+            }, 1000);
+        }
+
+        function speakText(text, callback) {
+            if (!window.speechSynthesis) {
+                if (callback) callback();
+                return;
+            }
+            window.speechSynthesis.cancel();
+            let utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-TW';
+            utterance.rate = 0.8;
+            if (callback) {
+                utterance.onend = callback;
+            }
+            window.speechSynthesis.speak(utterance);
+        }
+
+        async function playRound() {
+            isAnswered = false;
+            let area = document.getElementById('visual-area');
+            let eq = document.getElementById('equation');
+            let feedback = document.getElementById('feedback');
+            
+            activeOptions.forEach(el => el.remove());
+            activeOptions = [];
+            if (gameInterval) clearInterval(gameInterval);
+
+            let action = Math.random() > 0.5 ? 'add' : 'sub';
+            if (currentCount >= 8) action = 'sub';
+            if (currentCount <= 1) action = 'add';
+
+            renderTrain(currentCount);
+            feedback.innerText = "仔細看火車喔！";
+            
+            await new Promise(r => setTimeout(r, 1000));
+
+            if (action === 'add') {
+                let nextCount = currentCount + 1;
+                eq.innerText = `${currentCount} + 1 = ?`;
+                currentAns = nextCount;
+                
+                let promptText = `原本有 ${currentCount} 節車廂，開來了一節新車廂。`;
+                feedback.innerText = promptText;
+                
+                speakText(promptText, async () => {
+                    await new Promise(r => setTimeout(r, 500));
+                    let t = document.createElement('div');
+                    t.className = 'train-car entering';
+                    t.innerText = '🚃'; // 全部皆為車廂，沒有火車頭
+                    area.appendChild(t);
+                    
+                    await new Promise(r => setTimeout(r, 100));
+                    t.classList.remove('entering');
+                    
+                    await new Promise(r => setTimeout(r, 1500));
+                    currentCount = nextCount;
+                    
+                    let finalAsk = "現在一共有幾節車廂呢？方塊掉下來囉！";
+                    feedback.innerText = finalAsk;
+                    speakText(finalAsk);
+                    startFallingOptions();
+                });
+
+            } else {
+                let nextCount = currentCount - 1;
+                eq.innerText = `${currentCount} - 1 = ?`;
+                currentAns = nextCount;
+                
+                let promptText = `原本有 ${currentCount} 節車廂，開走了一節車廂。`;
+                feedback.innerText = promptText;
+                
+                speakText(promptText, async () => {
+                    await new Promise(r => setTimeout(r, 500));
+                    let lastCar = area.lastElementChild;
+                    if (lastCar) {
+                        lastCar.classList.add('exiting');
+                    }
+                    
+                    await new Promise(r => setTimeout(r, 1500));
+                    currentCount = nextCount;
+                    renderTrain(currentCount);
+                    
+                    let finalAsk = "現在還剩下幾節車廂呢？方塊掉下來囉！";
+                    feedback.innerText = finalAsk;
+                    speakText(finalAsk);
+                    startFallingOptions();
+                });
+            }
+        }
+
+        function renderTrain(count) {
+            let area = document.getElementById('visual-area');
+            area.innerHTML = '';
+            for(let i = 0; i < count; i++) {
+                let t = document.createElement('div');
+                t.className = 'train-car';
+                t.innerText = '🚃'; // 全部使用一致的車廂符號，避免混淆
+                area.appendChild(t);
+            }
+        }
+
+        function startFallingOptions() {
+            let options = new Set([currentAns]);
+            while(options.size < 4) {
+                let rand = Math.floor(Math.random() * 10) + 1;
+                options.add(rand);
+            }
+            let optionsArr = Array.from(options).sort(() => Math.random() - 0.5);
+
+            let index = 0;
+            gameInterval = setInterval(() => {
+                if (isAnswered) {
+                    clearInterval(gameInterval);
+                    return;
+                }
+                if (index >= optionsArr.length) index = 0;
+                spawnFallingOption(optionsArr[index]);
+                index++;
+            }, 2000);
+        }
+
+        function spawnFallingOption(val) {
+            if (isAnswered) return;
+            const container = document.getElementById('drop-game-container');
+            const el = document.createElement('div');
+            el.className = 'falling-option';
+            el.innerText = val;
+
+            const randomX = Math.random() * (container.clientWidth - 70);
+            el.style.left = randomX + 'px';
+            const duration = 4 + Math.random();
+            el.style.animationDuration = duration + 's';
+
+            let isHandled = false;
+            const handleSelect = function(e) {
+                if (e.cancelable) e.preventDefault();
+                e.stopPropagation();
+                if (isAnswered || isHandled) return;
+                isHandled = true;
+
+                if (val === currentAns) {
+                    isAnswered = true;
+                    document.getElementById('feedback').innerText = "太棒了！👍";
+                    speakText("太棒了！");
+                    confetti();
+                    score++;
+                    document.getElementById('score').innerText = `闖關: ${score}`;
+
+                    clearInterval(gameInterval);
+                    activeOptions.forEach(opt => opt.remove());
+                    activeOptions = [];
+
+                    setTimeout(playRound, 2500);
+                } else {
+                    speakText("再算算看喔！");
+                    document.getElementById('feedback').innerText = "❌ 數字不對喔，再試一次！";
+                    el.style.transition = "opacity 0.3s";
+                    el.style.opacity = "0";
+                    setTimeout(() => el.remove(), 300);
+                }
+            };
+
+            el.addEventListener('click', handleSelect);
+            el.addEventListener('touchstart', handleSelect, { passive: false });
+
+            el.addEventListener('animationend', () => {
+                el.remove();
+                activeOptions = activeOptions.filter(item => item !== el);
+            });
+
+            container.appendChild(el);
+            activeOptions.push(el);
+        }
+    </script>
+</body>
+</html>
