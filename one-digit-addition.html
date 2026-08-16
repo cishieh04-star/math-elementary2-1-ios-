@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>個位數進位特訓班 (完整顯示與延長停留版)</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: sans-serif; text-align: center; background-color: #fef3c7; 
+            margin: 0; padding: 5px; min-height: 100vh; 
+            min-height: calc(100vh - env(safe-area-inset-bottom));
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            overflow-x: hidden; overflow-y: auto; touch-action: manipulation; 
+        }
+        h1 { color: #b45309; font-size: 20px; margin: 2px 0; }
+        
+        #gameScreen { 
+            width: 100%; max-width: 540px; min-height: 90vh; max-height: 96vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-around; 
+            background: #fff; border-radius: 16px; border: 3px solid #f59e0b; padding: 6px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: auto;
+        }
+        
+        .status-bar { display: flex; justify-content: center; width: 100%; font-size: 16px; font-weight: bold; color: #b45309; border-bottom: 2px solid #fef3c7; padding-bottom: 3px; }
+
+        .step-banner { background: #fef3c7; color: #92400e; padding: 5px 10px; border-radius: 8px; font-size: 15px; font-weight: bold; width: 100%; }
+
+        /* 直式排版區 - 嚴格雙欄對齊並縮减間距以適應所有平板/手機畫面 */
+        .vertical-math {
+            display: inline-flex; flex-direction: column; align-items: flex-end;
+            font-size: 40px; font-weight: bold; font-family: monospace;
+            background: #f8fafc; padding: 12px 25px 12px 35px; border-radius: 12px; border: 2px solid #cbd5e1;
+            position: relative;
+        }
+        .math-row { display: flex; gap: 12px; width: 100%; justify-content: flex-end; }
+        .math-line { width: 100%; height: 3px; background: #333; margin: 4px 0; }
+        .cell { width: 45px; text-align: center; display: flex; align-items: center; justify-content: center; height: 50px; }
+        
+        .operator { position: absolute; left: 10px; top: 50px; font-size: 35px; color: #333; }
+        
+        /* 答案左側的進位數字 */
+        .carry-ans {
+            color: #166534; 
+            background: #bbf7d0; 
+            border: 3px solid #16a34a; 
+            border-radius: 8px;
+            opacity: 0; 
+            transform: scale(0.3);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .carry-ans.show {
+            opacity: 1; 
+            transform: scale(1);
+        }
+
+        #drop-game-container {
+            position: relative; width: 100%; height: 110px;
+            background: #f1f5f9; border: 2px solid #cbd5e1; border-radius: 10px;
+            overflow: hidden; touch-action: manipulation;
+        }
+
+        .falling-option {
+            position: absolute; width: 55px; height: 55px;
+            background: radial-gradient(circle, #fcd34d 60%, #f59e0b 100%);
+            border: 3px solid #d97706; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: bold; color: #78350f;
+            cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            animation: fall linear forwards; z-index: 999;
+        }
+        .falling-option:active { transform: scale(0.9); }
+
+        @keyframes fall {
+            0% { top: -55px; }
+            100% { top: 55px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="gameScreen">
+        <h1>🔄 個位數進位特訓班</h1>
+        <div class="status-bar">
+            <div id="score">已完成: 0 關</div>
+        </div>
+        
+        <div class="step-banner" id="stepBanner">請先算個位數相加！</div>
+
+        <!-- 直式呈現區 -->
+        <div class="vertical-math" id="mathBox">
+            <div class="operator">+</div>
+            
+            <div class="math-row">
+                <div class="cell"></div>
+                <div class="cell" id="numUp">9</div>
+            </div>
+            
+            <div class="math-row">
+                <div class="cell"></div>
+                <div class="cell" id="numDown">6</div>
+            </div>
+            
+            <div class="math-line"></div>
+            
+            <div class="math-row">
+                <div class="cell carry-ans" id="carryBox">1</div> 
+                <div class="cell" id="ansU">?</div>
+            </div>
+        </div>
+
+        <div id="feedback" style="font-size: 16px; color: #d97706; font-weight: bold; min-height: 22px;"></div>
+        
+        <div id="drop-game-container"></div>
+    </div>
+
+    <script>
+        let score = 0;
+        let upNum = 9, downNum = 6;
+        let targetU = 5; 
+        let gameInterval = null;
+        let activeOptions = [];
+        let isLocked = false;
+
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'zh-TW';
+            msg.rate = 0.85;
+            window.speechSynthesis.speak(msg);
+        }
+
+        function initQuestion() {
+            isLocked = false;
+            document.getElementById('carryBox').classList.remove('show');
+            document.getElementById('ansU').innerText = "?";
+
+            const pairs = [
+                {up: 9, down: 6},
+                {up: 8, down: 5},
+                {up: 7, down: 4},
+                {up: 9, down: 4},
+                {up: 8, down: 7},
+                {up: 6, down: 5},
+                {up: 9, down: 9},
+                {up: 7, down: 6}
+            ];
+            let pair = pairs[Math.floor(Math.random() * pairs.length)];
+            upNum = pair.up;
+            downNum = pair.down;
+            targetU = (upNum + downNum) % 10;
+
+            document.getElementById('numUp').innerText = upNum;
+            document.getElementById('numDown').innerText = downNum;
+
+            document.getElementById('stepBanner').innerText = `先算個位數：${upNum} ＋ ${downNum} ＝ ？`;
+            speak(`個位數，${upNum}加${downNum}等於多少呢？方塊掉下來囉！`);
+
+            setupFalling();
+        }
+
+        function setupFalling() {
+            activeOptions.forEach(el => el.remove());
+            activeOptions = [];
+            if (gameInterval) clearInterval(gameInterval);
+
+            let options = [targetU];
+            while (options.length < 4) {
+                let r = Math.floor(Math.random() * 10);
+                if (!options.includes(r)) options.push(r);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            let index = 0;
+            gameInterval = setInterval(() => {
+                if (isLocked) return;
+                if (index >= options.length) index = 0;
+                spawnFallingOption(options[index]);
+                index++;
+            }, 2000);
+        }
+
+        function spawnFallingOption(val) {
+            if (isLocked) return;
+            const container = document.getElementById('drop-game-container');
+            const el = document.createElement('div');
+            el.className = 'falling-option';
+            el.innerText = val;
+
+            const randomX = Math.random() * (container.clientWidth - 55);
+            el.style.left = randomX + 'px';
+            el.style.animationDuration = "6s"; 
+
+            let isHandled = false;
+            const handleSelect = (e) => {
+                if (e) e.preventDefault();
+                if (isLocked || isHandled) return;
+
+                if (val === targetU) {
+                    isHandled = true;
+                    isLocked = true;
+                    if (gameInterval) clearInterval(gameInterval);
+                    activeOptions.forEach(opt => opt.remove());
+
+                    // 1. 個位數格子填入正確答案
+                    document.getElementById('ansU').innerText = targetU;
+
+                    // 2. 答案左側彈出進位 1
+                    document.getElementById('carryBox').classList.add('show');
+
+                    score++;
+                    document.getElementById('score').innerText = `已完成: ${score} 關`;
+                    document.getElementById('feedback').innerText = `🎉 太棒了！個位寫 ${targetU}，進位 1 出現囉！`;
+                    speak(`答對了！個位寫 ${targetU}，進位 1 出現了！`);
+                    confetti();
+
+                    // 3. 延長停留時間至 6.5 秒，讓小朋友有充足時間看懂
+                    setTimeout(() => {
+                        initQuestion();
+                    }, 6500);
+
+                } else {
+                    isHandled = true;
+                    speak("再想一想，個位數要寫哪一個呢？");
+                    document.getElementById('feedback').innerText = "❌ 數字不對喔，請找找正確的個位數！";
+                    el.style.opacity = "0";
+                    setTimeout(() => el.remove(), 300);
+                }
+            };
+
+            el.addEventListener('click', handleSelect);
+            el.addEventListener('touchstart', handleSelect, { passive: false });
+            el.addEventListener('animationend', () => {
+                el.remove();
+                activeOptions = activeOptions.filter(item => item !== el);
+            });
+
+            container.appendChild(el);
+            activeOptions.push(el);
+        }
+
+        initQuestion();
+    </script>
+</body>
+</html>
