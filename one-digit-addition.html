@@ -27,7 +27,7 @@
 
         .step-banner { background: #fef3c7; color: #92400e; padding: 5px 10px; border-radius: 8px; font-size: 15px; font-weight: bold; width: 100%; }
 
-        /* 直式排版區 - 嚴格雙欄對齊並縮减間距以適應所有平板/手機畫面 */
+        /* 直式排版區 */
         .vertical-math {
             display: inline-flex; flex-direction: column; align-items: flex-end;
             font-size: 40px; font-weight: bold; font-family: monospace;
@@ -99,7 +99,7 @@
             
             <div class="math-row">
                 <div class="cell"></div>
-                <div class="cell" id="numDown">6</div>
+                <div class="cell" id="numDown">4</div>
             </div>
             
             <div class="math-line"></div>
@@ -117,8 +117,8 @@
 
     <script>
         let score = 0;
-        let upNum = 9, downNum = 6;
-        let targetU = 5; 
+        let upNum = 9, downNum = 4;
+        let targetU = 3; 
         let gameInterval = null;
         let activeOptions = [];
         let isLocked = false;
@@ -137,10 +137,10 @@
             document.getElementById('ansU').innerText = "?";
 
             const pairs = [
+                {up: 9, down: 4},
                 {up: 9, down: 6},
                 {up: 8, down: 5},
                 {up: 7, down: 4},
-                {up: 9, down: 4},
                 {up: 8, down: 7},
                 {up: 6, down: 5},
                 {up: 9, down: 9},
@@ -154,8 +154,8 @@
             document.getElementById('numUp').innerText = upNum;
             document.getElementById('numDown').innerText = downNum;
 
-            document.getElementById('stepBanner').innerText = `先算個位數：${upNum} ＋ ${downNum} ＝ ？`;
-            speak(`個位數，${upNum}加${downNum}等於多少呢？方塊掉下來囉！`);
+            document.getElementById('stepBanner').innerText = `${upNum} ＋ ${downNum} 以後，正確答案的個位數應該等於多少呢？`;
+            speak(`${upNum}加${downNum}以後，正確答案的個位數應該等於多少呢？方塊掉下來囉！`);
 
             setupFalling();
         }
@@ -211,19 +211,19 @@
 
                     score++;
                     document.getElementById('score').innerText = `已完成: ${score} 關`;
-                    document.getElementById('feedback').innerText = `🎉 太棒了！個位寫 ${targetU}，進位 1 出現囉！`;
-                    speak(`答對了！個位寫 ${targetU}，進位 1 出現了！`);
+                    document.getElementById('feedback').innerText = `🎉 太棒了！個位數是 ${targetU}，進位 1 出現囉！`;
+                    speak(`答對了！個位數是 ${targetU}，進位 1 出現了！`);
                     confetti();
 
-                    // 3. 延長停留時間至 6.5 秒，讓小朋友有充足時間看懂
+                    // 3. 延長停留 6.5 秒讓小朋友看懂
                     setTimeout(() => {
                         initQuestion();
                     }, 6500);
 
                 } else {
                     isHandled = true;
-                    speak("再想一想，個位數要寫哪一個呢？");
-                    document.getElementById('feedback').innerText = "❌ 數字不對喔，請找找正確的個位數！";
+                    speak("再想一想，正確答案的個位數是多少呢？");
+                    document.getElementById('feedback').innerText = "❌ 數字不對喔，請找找看正確的個位數！";
                     el.style.opacity = "0";
                     setTimeout(() => el.remove(), 300);
                 }
