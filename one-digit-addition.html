@@ -23,7 +23,19 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: auto;
         }
         
-        .status-bar { display: flex; justify-content: center; width: 100%; font-size: 16px; font-weight: bold; color: #b45309; border-bottom: 2px solid #fef3c7; padding-bottom: 3px; }
+        /* 狀態列 (含闖關次數與暫停按鈕) */
+        .status-bar { 
+            display: flex; justify-content: space-between; align-items: center; 
+            width: 100%; font-size: 16px; font-weight: bold; color: #b45309; 
+            border-bottom: 2px solid #fef3c7; padding-bottom: 4px; padding-left: 10px; padding-right: 10px; 
+        }
+
+        .pause-btn {
+            background-color: #f59e0b; color: white; border: none; border-radius: 8px;
+            padding: 5px 12px; font-size: 14px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+        .pause-btn:active { transform: scale(0.95); background-color: #d97706; }
 
         .step-banner { background: #fef3c7; color: #92400e; padding: 5px 10px; border-radius: 8px; font-size: 15px; font-weight: bold; width: 100%; }
 
@@ -81,9 +93,10 @@
 <body>
 
     <div id="gameScreen">
-        <h1>🔄 個位數進位特訓班</h1>
+        <h1>🔄 個位數直式加法進位遊戲(基礎版)</h1>
         <div class="status-bar">
             <div id="score">已完成: 0 關</div>
+            <button class="pause-btn" id="pauseBtn" onclick="togglePause()">暫停</button>
         </div>
         
         <div class="step-banner" id="stepBanner">請先算個位數相加！</div>
@@ -122,8 +135,11 @@
         let gameInterval = null;
         let activeOptions = [];
         let isLocked = false;
+        let isPaused = false;
+        let nextQuestionTimeout = null;
 
         function speak(text) {
+            if (isPaused) return;
             window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(text);
             msg.lang = 'zh-TW';
@@ -131,7 +147,32 @@
             window.speechSynthesis.speak(msg);
         }
 
+        function togglePause() {
+            isPaused = !isPaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            const options = document.querySelectorAll('.falling-option');
+
+            if (isPaused) {
+                pauseBtn.innerText = "繼續";
+                pauseBtn.style.backgroundColor = "#16a34a";
+                if (gameInterval) clearInterval(gameInterval);
+                window.speechSynthesis.cancel();
+                // 暫停所有掉落方塊的動畫
+                options.forEach(el => el.style.animationPlayState = 'paused');
+                document.getElementById('feedback').innerText = "⏸️ 遊戲已暫停，隨時可以點繼續！";
+            } else {
+                pauseBtn.innerText = "暫停";
+                pauseBtn.style.backgroundColor = "#f59e0b";
+                options.forEach(el => el.style.animationPlayState = 'running');
+                document.getElementById('feedback').innerText = "";
+                if (!isLocked) {
+                    setupFalling();
+                }
+            }
+        }
+
         function initQuestion() {
+            if (isPaused) return;
             isLocked = false;
             document.getElementById('carryBox').classList.remove('show');
             document.getElementById('ansU').innerText = "?";
@@ -161,6 +202,7 @@
         }
 
         function setupFalling() {
+            if (isPaused) return;
             activeOptions.forEach(el => el.remove());
             activeOptions = [];
             if (gameInterval) clearInterval(gameInterval);
@@ -174,7 +216,7 @@
 
             let index = 0;
             gameInterval = setInterval(() => {
-                if (isLocked) return;
+                if (isLocked || isPaused) return;
                 if (index >= options.length) index = 0;
                 spawnFallingOption(options[index]);
                 index++;
@@ -182,7 +224,7 @@
         }
 
         function spawnFallingOption(val) {
-            if (isLocked) return;
+            if (isLocked || isPaused) return;
             const container = document.getElementById('drop-game-container');
             const el = document.createElement('div');
             el.className = 'falling-option';
@@ -195,7 +237,7 @@
             let isHandled = false;
             const handleSelect = (e) => {
                 if (e) e.preventDefault();
-                if (isLocked || isHandled) return;
+                if (isLocked || isHandled || isPaused) return;
 
                 if (val === targetU) {
                     isHandled = true;
@@ -216,8 +258,9 @@
                     confetti();
 
                     // 3. 延長停留 6.5 秒讓小朋友看懂
-                    setTimeout(() => {
-                        initQuestion();
+                    if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+                    nextQuestionTimeout = setTimeout(() => {
+                        if (!isPaused) initQuestion();
                     }, 6500);
 
                 } else {
