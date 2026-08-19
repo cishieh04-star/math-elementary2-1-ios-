@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>數學冒險：1到20火車篇</title>
+    <title>數學接力遊戲：1到20火車篇</title>
     <!-- 引入灑花特效庫 -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
@@ -167,10 +167,20 @@
 <body>
 
 <div class="main-wrapper">
-    <!-- 首頁畫面：使用原生 onclick，保證所有 Android 裝置與 Asus/三星一按就通 -->
+    <!-- 首頁畫面：加入特色介紹與使用說明 -->
     <div id="home-screen">
-        <h1 style="font-size: 36px; color: #1e293b; margin-bottom: 10px;">🚂 1到20：火車過山洞</h1>
-        <p style="color: #64748b; font-size: 16px; margin-bottom: 25px;">找出空格的正確數字，讓火車順利開過去！</p>
+        <h1 style="font-size: 34px; color: #1e293b; margin-bottom: 5px;">🚂 1到20：火車過山洞</h1>
+        <p style="color: #0284c7; font-size: 15px; font-weight: bold; margin-bottom: 12px;">🌟 特色：語音互動 × 趣味掉落球 × 訓練數字順序！</p>
+        
+        <!-- 使用說明區塊 -->
+        <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px 15px; margin-bottom: 15px; width: 100%; box-sizing: border-box; text-align: left;">
+            <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold; color: #334155;">📖 遊戲怎麼玩：</p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #64748b; line-height: 1.5;">
+                <li>觀察上方火車車廂，找出被問號 <code style="background:#e2e8f0; padding:1px 4px; border-radius:4px;">?</code> 擋住的正確數字。</li>
+                <li>點擊畫面上掉落下來的正確數字球來闖關！</li>
+            </ul>
+        </div>
+
         <button id="start-btn" onclick="initGame()">開始玩遊戲</button>
     </div>
 
