@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>火車算術大冒險</title>
+    <title>火車算術好玩遊戲(極簡單)</title>
     <style>
         * { box-sizing: border-box; }
         body { 
@@ -22,9 +22,19 @@
             touch-action: manipulation;
         }
         
-        /* 首頁樣式 */
-        #home-screen { text-align: center; }
-        #start-btn { padding: 20px 40px; font-size: 32px; background: #1976d2; color: white; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 6px #0d47a1; }
+        /* 首頁樣式調整 */
+        #home-screen { 
+            text-align: center; 
+            background: #ffffff;
+            border: 4px solid #b2ebf2;
+            border-radius: 20px;
+            padding: 25px 20px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        #start-btn { padding: 18px 40px; font-size: 28px; background: #1976d2; color: white; border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 6px #0d47a1; font-weight: bold; margin-top: 10px; }
+        #start-btn:active { transform: translateY(3px); box-shadow: 0 3px #0d47a1; }
         
         /* 遊戲介面樣式：改為適應平板的高度與寬度，避免溢出 */
         #game-ui { 
@@ -116,8 +126,20 @@
 </head>
 <body>
 
+    <!-- 首頁畫面：加入特色介紹與使用說明 -->
     <div id="home-screen">
-        <h1 style="font-size: 45px; color: #1976d2; margin-bottom: 20px;">🚂 火車車廂算術冒險</h1>
+        <h1 style="font-size: 38px; color: #1976d2; margin-top: 0; margin-bottom: 8px;">🚂 火車車廂算術冒險</h1>
+        <p style="color: #0284c7; font-size: 15px; font-weight: bold; margin-bottom: 15px;">🌟 特色：語音互動 × 動態加減法 × 訓練專注力！</p>
+        
+        <!-- 使用說明區塊 -->
+        <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px 15px; margin-bottom: 20px; text-align: left;">
+            <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold; color: #334155;">📖 遊戲怎麼玩：</p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #64748b; line-height: 1.5;">
+                <li>觀察火車車廂增加或減少的變化。</li>
+                <li>算出正確答案後，點擊畫面上掉落下來的數字方塊來通關！</li>
+            </ul>
+        </div>
+
         <button id="start-btn" onclick="initGame()">開始遊戲</button>
     </div>
 
