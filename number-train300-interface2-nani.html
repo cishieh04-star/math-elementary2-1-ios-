@@ -224,10 +224,20 @@
 <body>
 
 <div class="main-wrapper">
-    <!-- 首頁畫面 -->
+    <!-- 首頁畫面：加入特色介紹與使用說明 -->
     <div id="home-screen">
-        <h1 style="font-size: 32px; color: #1e293b; margin-bottom: 10px;">🚂 1到300：火車過山洞（間隔2）</h1>
-        <p style="color: #64748b; font-size: 15px; margin-bottom: 25px;">數字在 300 以內，間隔為 2，找出空格的正確數字！</p>
+        <h1 style="font-size: 32px; color: #1e293b; margin-bottom: 5px;">🚂 數學冒險：1到300火車篇（間隔2）</h1>
+        <p style="color: #0284c7; font-size: 14px; font-weight: bold; margin-bottom: 12px;">🌟 特色：300以內跳數練習 × 間隔2 × 語音互動！</p>
+        
+        <!-- 使用說明區塊 -->
+        <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px 15px; margin-bottom: 15px; width: 100%; box-sizing: border-box; text-align: left;">
+            <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold; color: #334155;">📖 遊戲怎麼玩：</p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #64748b; line-height: 1.5;">
+                <li>觀察火車車廂的數字規律（固定間隔 2），找出空格 <code style="background:#e2e8f0; padding:1px 4px; border-radius:4px;">?</code> 的正確數字。</li>
+                <li>點擊畫面上掉落下來的正確數字球來完成闖關！</li>
+            </ul>
+        </div>
+
         <button id="start-btn" onclick="initGame()">開始玩遊戲</button>
     </div>
 
@@ -378,7 +388,7 @@
             activeOptions = [];
             if (gameInterval) clearInterval(gameInterval);
 
-            // 數字範圍在 300 以內，間隔固定為 2 (起始點 1 到 290 之間，確保 4 個車廂不超過 300)
+            // 300以下，固定間隔為 2 (範圍 1 到 290，確保 4 個車廂不超過 300)
             let step = 2;
             let startNum = Math.floor(Math.random() * 290) + 1; 
             
@@ -395,7 +405,7 @@
 
             let options = new Set([currentAns]);
             while(options.size < 4) {
-                let randVal = Math.floor(Math.random() * 299) + 1;
+                let randVal = Math.floor(Math.random() * 300) + 1;
                 options.add(randVal);
             }
             optionsArr = Array.from(options).sort(() => Math.random() - 0.5);
