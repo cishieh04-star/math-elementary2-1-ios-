@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>數學冒險：數到300火車篇</title>
+    <title>數學接力冒險：數到300火車篇(固定間隔1)</title>
     <!-- 引入灑花特效庫 -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
@@ -167,10 +167,20 @@
 <body>
 
 <div class="main-wrapper">
-    <!-- 首頁畫面：使用原生 onclick，保證所有 Android 裝置與 Asus/三星一按就通 -->
+    <!-- 首頁畫面：加入特色介紹與使用說明 -->
     <div id="home-screen">
-        <h1 style="font-size: 36px; color: #1e293b; margin-bottom: 10px;">🚂 數到300：火車過山洞</h1>
-        <p style="color: #64748b; font-size: 16px; margin-bottom: 25px;">找出空格的正確數字，讓火車順利開過去！</p>
+        <h1 style="font-size: 32px; color: #1e293b; margin-bottom: 5px;">🚂 數到300：火車過山洞</h1>
+        <p style="color: #0284c7; font-size: 14px; font-weight: bold; margin-bottom: 12px;">🌟 特色：300以內大數字 × 連續數數 × 語音互動！</p>
+        
+        <!-- 使用說明區塊 -->
+        <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px 15px; margin-bottom: 15px; width: 100%; box-sizing: border-box; text-align: left;">
+            <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold; color: #334155;">📖 遊戲怎麼玩：</p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #64748b; line-height: 1.5;">
+                <li>觀察火車車廂的連續數字（固定間隔 1），找出空格 <code style="background:#e2e8f0; padding:1px 4px; border-radius:4px;">?</code> 的正確數字。</li>
+                <li>點擊畫面上掉落下來的正確數字球來完成闖關！</li>
+            </ul>
+        </div>
+
         <button id="start-btn" onclick="initGame()">開始玩遊戲</button>
     </div>
 
@@ -321,14 +331,17 @@
             activeOptions = [];
             if (gameInterval) clearInterval(gameInterval);
 
-            // 隨機產生 100 到 280 之間的基準數，練習數到300以內的序列
-            let baseNum = Math.floor(Math.random() * 18) * 10 + 100; // 例如 100, 110... 到 270
-            let step = Math.random() > 0.5 ? 1 : 10; // 隨機 1個一數 或 10個一數
-            let blankIndex = Math.floor(Math.random() * 3) + 1; // 3個車廂中挖空其中一個
+            // 300以下，固定間隔為 1（範圍從 1 到 296，確保 4 個車廂不超過 300）
+            let step = 1;
+            let startMin = 1;
+            let startMax = 296; 
+            let baseNum = Math.floor(Math.random() * (startMax - startMin + 1)) + startMin;
+            
+            let blankIndex = Math.floor(Math.random() * 4); // 4個車廂中隨機挖空其中一個
 
             trainSequence = [];
             for (let i = 0; i < 4; i++) {
-                trainSequence.push(baseNum + (i - 1) * step);
+                trainSequence.push(baseNum + i * step);
             }
             currentAns = trainSequence[blankIndex];
 
@@ -337,9 +350,8 @@
 
             let options = new Set([currentAns]);
             while(options.size < 4) {
-                let offset = (Math.floor(Math.random() * 5) - 2) * step;
-                let wrongVal = currentAns + (offset === 0 ? step : offset);
-                if (wrongVal > 0 && wrongVal <= 300) options.add(wrongVal);
+                let randVal = Math.floor(Math.random() * 300) + 1;
+                options.add(randVal);
             }
             optionsArr = Array.from(options).sort(() => Math.random() - 0.5);
 
