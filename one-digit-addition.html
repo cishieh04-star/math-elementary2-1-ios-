@@ -1,4 +1,4 @@
-<DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -24,7 +24,7 @@
             position: relative;
         }
 
-        /* 💡 開始畫面遮罩層：改為柔和淺色背景與黑色文字，支援內部捲動，確保所有裝置完整顯示 */
+        /* 💡 支援內部捲動，確保在所有裝置上都能完整瀏覽詳細說明與按鈕 */
         #startOverlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #e0f2fe; border-radius: 13px; color: #1e293b;
@@ -42,14 +42,14 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
         .intro-card h3 { margin: 0 0 6px 0; font-size: 15px; color: #0f172a; }
-        .intro-card ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; color: #334155; }
-        .intro-card li { margin-bottom: 4px; }
+        .intro-card ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: #334155; }
+        .intro-card li { margin-bottom: 6px; }
 
         .start-btn {
             background-color: #2563eb; color: white; border: none; border-radius: 14px;
             padding: 15px 35px; font-size: 22px; font-weight: bold; cursor: pointer;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: transform 0.1s;
-            width: 100%; max-width: 280px; text-align: center; margin-top: 10px;
+            width: 100%; max-width: 280px; text-align: center; margin-top: 5px; margin-bottom: 15px;
         }
         .start-btn:active { transform: scale(0.95); background-color: #1d4ed8; }
         
@@ -121,7 +121,7 @@
 <body>
 
     <div id="gameScreen">
-        <!-- 開始畫面遮罩：淺色背景、黑色文字，支援捲動與完整顯示 -->
+        <!-- 開始畫面遮罩：詳細說明與導覽 -->
         <div id="startOverlay">
             <div class="start-content-box">
                 <h2>✨ 個位數直式加法進位遊戲 ✨</h2>
@@ -130,20 +130,21 @@
                 <div class="intro-card">
                     <h3>🌟 遊戲特色亮點</h3>
                     <ul>
-                        <li><strong>直式加法概念：</strong>透過視覺化的直式排列，幫助建立基礎的加法進位觀念。</li>
-                        <li><strong>語音引導互動：</strong>結合語音念出題目與提示，讓學習更有臨場感。</li>
-                        <li><strong>趣味掉落方塊：</strong>答題時透過點擊掉落的數字方塊來完成闖關，充滿樂趣。</li>
+                        <li><strong>直式加法基礎：</strong>以標準直式排版呈現，幫助建立清晰的個位數相加與進位觀念。</li>
+                        <li><strong>語音導覽互動：</strong>內建真人語音播報與提示，讓學習過程更加生動且具臨場感。</li>
+                        <li><strong>趣味方塊點擊：</strong>結合動態掉落的數字方塊，讓練習過程充滿遊戲樂趣與挑戰性。</li>
                     </ul>
                 </div>
 
-                <!-- 操作使用說明卡片 -->
+                <!-- 詳細操作使用說明卡片 -->
                 <div class="intro-card">
-                    <h3>📖 操作使用說明</h3>
+                    <h3>📖 詳細操作使用說明</h3>
                     <ul>
-                        <li><strong>步驟一 (觀看題目)：</strong>觀察畫面中直式算式的上下兩個數字。</li>
-                        <li><strong>步驟二 (計算個位數)：</strong>將兩個數字相加，思考正確答案的「個位數」是多少。</li>
-                        <li><strong>步驟三 (點擊方塊)：</strong>當畫面中掉落數字方塊時，點擊對應的正確數字即可通關並出現進位 1！</li>
-                        <li><strong>貼心按鈕：</strong>遊戲過程中隨時可點擊右上角「暫停」按鈕休息。</li>
+                        <li><strong>第一步：觀察直式算式：</strong>遊戲開始後，請先看清楚畫面中直式算式上、下方的兩個數字。</li>
+                        <li><strong>步驟二：計算個位數：</strong>將兩個數字相加，思考正確答案的「個位數」是多少（例如 9 加 4 等於 13，個位數就是 3）。</li>
+                        <li><strong>步驟三：點擊掉落方塊：</strong>當畫面下方掉落數字方塊時，請用手指或滑鼠點擊對應的正確個位數答案來進行闖關。</li>
+                        <li><strong>步驟四：進位動畫展示：</strong>答對後，個位數會自動填入，同時左側會彈出綠色的「進位 1」動畫，並伴隨歡樂的灑花特效！</li>
+                        <li><strong>貼心按鈕：</strong>遊戲過程中如果需要暫時休息，可隨時點擊右上角的「暫停」按鈕，再次點擊即可繼續。</li>
                     </ul>
                 </div>
 
@@ -205,16 +206,11 @@
             window.speechSynthesis.speak(msg);
         }
 
-        // 點擊開始遊戲按鈕：解鎖語音並正式進入第一關
         function startGame() {
-            // 強制解鎖語音引擎
             const dummy = new SpeechSynthesisUtterance("");
             window.speechSynthesis.speak(dummy);
 
-            // 隱藏開始畫面遮罩
             document.getElementById('startOverlay').style.display = 'none';
-
-            // 初始化並出題
             initQuestion();
         }
 
@@ -315,10 +311,7 @@
                     if (gameInterval) clearInterval(gameInterval);
                     activeOptions.forEach(opt => opt.remove());
 
-                    // 1. 個位數格子填入正確答案
                     document.getElementById('ansU').innerText = targetU;
-
-                    // 2. 答案左側彈出進位 1
                     document.getElementById('carryBox').classList.add('show');
 
                     score++;
@@ -327,7 +320,6 @@
                     speak(`答對了！個位數是 ${targetU}，進位 1 出現了！`);
                     confetti();
 
-                    // 3. 延長停留 6.5 秒讓小朋友看懂
                     if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
                     nextQuestionTimeout = setTimeout(() => {
                         if (!isPaused) initQuestion();
