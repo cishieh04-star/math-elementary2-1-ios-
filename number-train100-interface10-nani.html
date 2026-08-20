@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>數學冒險：火車過山洞篇</title>
+    <title>數學冒險：火車過山洞篇(間隔10)</title>
     <!-- 引入灑花特效庫 -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
@@ -167,10 +167,20 @@
 <body>
 
 <div class="main-wrapper">
-    <!-- 首頁畫面 -->
+    <!-- 首頁畫面：加入特色介紹與使用說明 -->
     <div id="home-screen">
-        <h1 style="font-size: 36px; color: #1e293b; margin-bottom: 10px;">🚂 數列特訓：火車過山洞</h1>
-        <p style="color: #64748b; font-size: 16px; margin-bottom: 25px;">找出空格的正確數字，讓火車順利開過去！</p>
+        <h1 style="font-size: 32px; color: #1e293b; margin-bottom: 5px;">🚂 數學冒險：火車過山洞篇</h1>
+        <p style="color: #0284c7; font-size: 14px; font-weight: bold; margin-bottom: 12px;">🌟 特色：語音提示 × 隨機跳數挑戰 × 趣味掉落球！</p>
+        
+        <!-- 使用說明區塊 -->
+        <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px 15px; margin-bottom: 15px; width: 100%; box-sizing: border-box; text-align: left;">
+            <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold; color: #334155;">📖 遊戲怎麼玩：</p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #64748b; line-height: 1.5;">
+                <li>觀察上方火車車廂的數字規律，找出空格 <code style="background:#e2e8f0; padding:1px 4px; border-radius:4px;">?</code> 的正確數字。</li>
+                <li>點擊畫面上掉落下來的正確數字球來完成闖關！</li>
+            </ul>
+        </div>
+
         <button id="start-btn" onclick="initGame()">開始玩遊戲</button>
     </div>
 
@@ -326,7 +336,6 @@
             let startNum;
 
             if (step === 5) {
-                // 5的間距：10 到 95 之間[cite: 2]
                 let allowedNumbers = [];
                 for (let n = 10; n <= 95; n += 5) { allowedNumbers.push(n); }
                 let maxStartIndex = allowedNumbers.length - 4;
@@ -336,7 +345,6 @@
                     trainSequence.push(allowedNumbers[startIndex + i]);
                 }
             } else {
-                // 10的間距：10 到 90 之間
                 let allowedNumbers = [];
                 for (let n = 10; n <= 90; n += 10) { allowedNumbers.push(n); }
                 let maxStartIndex = allowedNumbers.length - 4;
@@ -355,7 +363,6 @@
 
             let options = new Set([currentAns]);
             while(options.size < 4) {
-                // 隨機干擾選項也從對應規則中抽取，增加擬真度
                 let randVal;
                 if (step === 5) {
                     let tempArr = [];
