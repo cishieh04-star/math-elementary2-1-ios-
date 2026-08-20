@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
-<title>互動付錢遊戲 (慢速版)</title>
+<title>互動付錢遊戲($1$5$10)</title>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <style>
   * { 
@@ -25,30 +25,31 @@
     position: relative;
   }
 
-  /* 💡 優化首頁樣式：支援直向捲動、確保所有文字與按鈕在所有裝置上絕對可見 */
+  /* 💡 修改首頁底色為不刺眼的淺色，文字改為黑色，支援捲動與完整顯示 */
   #startScreen {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.90); color: #fff; z-index: 9999;
+    background: #e0f2fe; color: #1e293b; z-index: 9999;
     display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
     overflow-y: auto; padding: 25px 20px; text-align: left;
   }
   .start-content-box {
     max-width: 500px; width: 100%; display: flex; flex-direction: column; align-items: center; margin: auto 0;
   }
-  #startScreen h1 { font-size: 26px; color: #ff9800; margin: 0 0 15px 0; text-align: center; }
+  #startScreen h1 { font-size: 26px; color: #0284c7; margin: 0 0 15px 0; text-align: center; }
   
   .intro-card {
-    background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+    background: #ffffff; border: 2px solid #cbd5e1;
     border-radius: 12px; padding: 12px 15px; margin-bottom: 12px; width: 100%;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
   }
-  .intro-card h3 { margin: 0 0 6px 0; font-size: 15px; color: #fbbf24; }
-  .intro-card ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; color: #e2e8f0; }
+  .intro-card h3 { margin: 0 0 6px 0; font-size: 15px; color: #0f172a; }
+  .intro-card ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; color: #334155; }
   .intro-card li { margin-bottom: 4px; }
 
   .start-btn { 
     font-size: 24px; font-weight: bold; margin-top: 15px; padding: 15px 35px; 
-    background: #ff9800; color: #fff; border: none; border-radius: 15px; 
-    cursor: pointer; box-shadow: 0 4px 15px rgba(255,152,0,0.4);
+    background: #2563eb; color: #fff; border: none; border-radius: 15px; 
+    cursor: pointer; box-shadow: 0 4px 15px rgba(37,99,235,0.3);
     transition: transform 0.1s; width: 100%; max-width: 300px; text-align: center;
   }
   .start-btn:active { transform: scale(0.95); }
@@ -144,20 +145,10 @@
 </head>
 <body>
 
-  <!-- 首頁說明畫面：支援滑動捲動，在所有裝置上皆能完整顯示 -->
+  <!-- 首頁說明畫面：淺色背景、黑色文字，支援捲動與完整顯示 -->
   <div id="startScreen">
     <div class="start-content-box">
-      <h1>🪙 互動付錢遊戲 (特教慢速友善版)</h1>
-      
-      <!-- 遊戲特色介紹卡片 -->
-      <div class="intro-card">
-        <h3>🌟 遊戲特色亮點</h3>
-        <ul>
-          <li><strong>特教慢速友善設計：</strong>硬幣掉落速度與頻率經過慢速調整，讓學習者有充足的時間觀察與反應。</li>
-          <li><strong>自動換錢機制：</strong>系統支援自動進位，兩個 5 元或十個 1 元會自動幫您換成 10 元硬幣。</li>
-          <li><strong>語音與聽覺回饋：</strong>結合語音念出金額、硬幣點擊音效及豐富的過關慶祝特效。</li>
-        </ul>
-      </div>
+      <h1>🪙 互動付錢遊戲</h1>
 
       <!-- 操作使用說明卡片 -->
       <div class="intro-card">
@@ -165,8 +156,9 @@
         <ul>
           <li><strong>步驟一 (看目標)：</strong>觀察畫面左上角禮物盒提示的「要付金額」。</li>
           <li><strong>步驟二 (點硬幣)：</strong>當畫面中掉落 1 元、5 元或 10 元硬幣時，用手指點擊收集牠們。</li>
-          <li><strong>步驟三 (集滿過關)：</strong>收集到剛好的金額即可自動通關！如果不小心點太多超額，系統會貼心暫停並可一鍵退回重新開始。</li>
-          <li><strong>貼心按鈕：</strong>遊戲中隨時可點擊右上角「⏸ 暫停」按鈕休息。</li>
+          <li><strong>步驟三 (集滿過關)：</strong>收集到剛好的金額即可自動通關！系統也會自動幫您把零錢換成十元硬幣。</li>
+          <li><strong>步驟四 (超額處理)：</strong>如果不小心點太多超額，系統會貼心暫停並可一鍵退回重新開始。</li>
+          <li><strong>貼心按鈕：</strong>遊戲過程中隨時可點擊右上角「⏸ 暫停」按鈕休息。</li>
         </ul>
       </div>
 
