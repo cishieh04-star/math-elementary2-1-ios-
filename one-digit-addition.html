@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -24,21 +24,34 @@
             position: relative;
         }
 
-        /* 開始畫面遮罩層 */
+        /* 💡 開始畫面遮罩層：改為柔和淺色背景與黑色文字，支援內部捲動，確保所有裝置完整顯示 */
         #startOverlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.96); border-radius: 13px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 9999; padding: 20px;
+            background: #e0f2fe; border-radius: 13px; color: #1e293b;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            z-index: 9999; padding: 25px 20px; overflow-y: auto; text-align: left;
         }
-        #startOverlay h2 { color: #b45309; font-size: 24px; margin-bottom: 10px; }
-        #startOverlay p { color: #78350f; font-size: 16px; margin-bottom: 25px; line-height: 1.5; }
+        .start-content-box {
+            max-width: 450px; width: 100%; display: flex; flex-direction: column; align-items: center; margin: auto 0;
+        }
+        #startOverlay h2 { color: #0284c7; font-size: 24px; margin-bottom: 12px; text-align: center; }
+        
+        .intro-card {
+            background: #ffffff; border: 2px solid #cbd5e1;
+            border-radius: 12px; padding: 12px 15px; margin-bottom: 12px; width: 100%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .intro-card h3 { margin: 0 0 6px 0; font-size: 15px; color: #0f172a; }
+        .intro-card ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; color: #334155; }
+        .intro-card li { margin-bottom: 4px; }
+
         .start-btn {
-            background-color: #16a34a; color: white; border: none; border-radius: 14px;
-            padding: 15px 40px; font-size: 22px; font-weight: bold; cursor: pointer;
+            background-color: #2563eb; color: white; border: none; border-radius: 14px;
+            padding: 15px 35px; font-size: 22px; font-weight: bold; cursor: pointer;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: transform 0.1s;
+            width: 100%; max-width: 280px; text-align: center; margin-top: 10px;
         }
-        .start-btn:active { transform: scale(0.95); background-color: #15803d; }
+        .start-btn:active { transform: scale(0.95); background-color: #1d4ed8; }
         
         .status-bar { 
             display: flex; justify-content: space-between; align-items: center; 
@@ -108,11 +121,34 @@
 <body>
 
     <div id="gameScreen">
-        <!-- 開始畫面遮罩：完美解決所有裝置的語音解鎖與防呆 -->
+        <!-- 開始畫面遮罩：淺色背景、黑色文字，支援捲動與完整顯示 -->
         <div id="startOverlay">
-            <h2>✨ 個位數直式加法進位遊戲 ✨</h2>
-            <p>準備好了嗎？點擊下方按鈕開始遊戲與語音！</p>
-            <button class="start-btn" onclick="startGame()">🎮 開始遊戲</button>
+            <div class="start-content-box">
+                <h2>✨ 個位數直式加法進位遊戲 ✨</h2>
+
+                <!-- 遊戲特色介紹卡片 -->
+                <div class="intro-card">
+                    <h3>🌟 遊戲特色亮點</h3>
+                    <ul>
+                        <li><strong>直式加法概念：</strong>透過視覺化的直式排列，幫助建立基礎的加法進位觀念。</li>
+                        <li><strong>語音引導互動：</strong>結合語音念出題目與提示，讓學習更有臨場感。</li>
+                        <li><strong>趣味掉落方塊：</strong>答題時透過點擊掉落的數字方塊來完成闖關，充滿樂趣。</li>
+                    </ul>
+                </div>
+
+                <!-- 操作使用說明卡片 -->
+                <div class="intro-card">
+                    <h3>📖 操作使用說明</h3>
+                    <ul>
+                        <li><strong>步驟一 (觀看題目)：</strong>觀察畫面中直式算式的上下兩個數字。</li>
+                        <li><strong>步驟二 (計算個位數)：</strong>將兩個數字相加，思考正確答案的「個位數」是多少。</li>
+                        <li><strong>步驟三 (點擊方塊)：</strong>當畫面中掉落數字方塊時，點擊對應的正確數字即可通關並出現進位 1！</li>
+                        <li><strong>貼心按鈕：</strong>遊戲過程中隨時可點擊右上角「暫停」按鈕休息。</li>
+                    </ul>
+                </div>
+
+                <button class="start-btn" onclick="startGame()">🎮 開始遊戲</button>
+            </div>
         </div>
 
         <h1>🔄 個位數直式加法進位遊戲(基礎版)</h1>
