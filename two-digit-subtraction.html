@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>兩位數直式減法退位遊戲(進階版)</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: sans-serif; text-align: center; background-color: #fef3c7; 
+            margin: 0; padding: env(safe-area-inset-top, 5px) env(safe-area-inset-right, 5px) env(safe-area-inset-bottom, 5px) env(safe-area-inset-left, 5px); 
+            min-height: 100vh; min-height: calc(100vh - env(safe-area-inset-bottom));
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            overflow: hidden; touch-action: manipulation; 
+        }
+        h1 { color: #b45309; font-size: 19px; margin: 2px 0; }
+        
+        #gameScreen { 
+            width: 100%; max-width: 500px; height: 92vh; max-height: 720px;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between; 
+            background: #fff; border-radius: 16px; border: 3px solid #f59e0b; padding: 10px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: auto;
+            position: relative;
+        }
+
+        #startOverlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.98); border-radius: 13px;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            z-index: 9999; padding: 25px 20px; overflow-y: auto; text-align: left;
+        }
+        .start-content-box {
+            max-width: 450px; width: 100%; display: flex; flex-direction: column; align-items: center; margin: auto 0;
+        }
+        #startOverlay h2 { color: #b45309; font-size: 24px; margin-bottom: 12px; text-align: center; }
+        
+        .intro-card {
+            background: #fffbeb; border: 2px solid #fde68a;
+            border-radius: 12px; padding: 12px 15px; margin-bottom: 15px; width: 100%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .intro-card h3 { margin: 0 0 6px 0; font-size: 15px; color: #b45309; }
+        .intro-card ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: #78350f; }
+        .intro-card li { margin-bottom: 6px; }
+
+        .start-btn {
+            background-color: #16a34a; color: white; border: none; border-radius: 14px;
+            padding: 15px 40px; font-size: 22px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: transform 0.1s;
+            width: 100%; max-width: 280px; text-align: center; margin-top: 5px; margin-bottom: 15px;
+        }
+        .start-btn:active { transform: scale(0.95); background-color: #15803d; }
+        
+        .status-bar { 
+            display: flex; justify-content: space-between; align-items: center; 
+            width: 100%; font-size: 15px; font-weight: bold; color: #b45309; 
+            border-bottom: 2px solid #fef3c7; padding-bottom: 4px; padding-left: 5px; padding-right: 5px; 
+        }
+
+        .control-btn {
+            background-color: #f59e0b; color: white; border: none; border-radius: 8px;
+            padding: 5px 12px; font-size: 14px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+        .control-btn:active { transform: scale(0.95); background-color: #d97706; }
+
+        .step-banner { background: #fef3c7; color: #92400e; padding: 5px 10px; border-radius: 8px; font-size: 14px; font-weight: bold; width: 100%; line-height: 1.3; }
+
+        /* 兩位數直式排版區 (十位與個位雙欄) */
+        .vertical-math {
+            display: inline-flex; flex-direction: column; align-items: flex-end;
+            font-size: 38px; font-weight: bold; font-family: monospace;
+            background: #f8fafc; padding: 10px 20px 10px 25px; border-radius: 12px; border: 2px solid #cbd5e1;
+            position: relative;
+        }
+        .math-row { display: flex; gap: 10px; width: 100%; justify-content: flex-end; }
+        .math-line { width: 100%; height: 3px; background: #333; margin: 4px 0; }
+        .cell { width: 42px; text-align: center; display: flex; align-items: center; justify-content: center; height: 45px; }
+        
+        .operator { position: absolute; left: 8px; top: 50px; font-size: 30px; color: #333; }
+        
+        /* 十位上方的退位(借位)提示格子 */
+        .carry-box {
+            position: absolute; left: 58px; top: 2px;
+            font-size: 18px; color: #ef4444; font-weight: bold;
+            background: #fee2e2; border: 2px dashed #ef4444; border-radius: 6px;
+            width: 38px; height: 32px; display: flex; align-items: center; justify-content: center;
+            opacity: 0; transform: scale(0.3);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .carry-box.show {
+            opacity: 1; 
+            transform: scale(1);
+            background: #fed7aa; border-color: #ea580c; color: #c2410c;
+        }
+
+        #drop-game-container {
+            position: relative; width: 100%; height: 110px;
+            background: #f1f5f9; border: 2px solid #cbd5e1; border-radius: 10px;
+            overflow: hidden; touch-action: manipulation;
+        }
+
+        .falling-option {
+            position: absolute; width: 55px; height: 55px;
+            background: radial-gradient(circle, #fcd34d 60%, #f59e0b 100%);
+            border: 3px solid #d97706; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: bold; color: #78350f;
+            cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            animation: fall linear forwards; z-index: 999;
+        }
+        .falling-option:active { transform: scale(0.9); }
+
+        @keyframes fall {
+            0% { top: -55px; }
+            100% { top: 55px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="gameScreen">
+        <!-- 開始畫面遮罩：詳細使用說明 -->
+        <div id="startOverlay">
+            <div class="start-content-box">
+                <h2>✨ 兩位數直式減法退位遊戲 (進階版) ✨</h2>
+
+                <!-- 操作使用說明卡片 -->
+                <div class="intro-card">
+                    <h3>📖 遊戲使用說明</h3>
+                    <ul>
+                        <li><strong>第一步：觀察算式：</strong>遊戲開始後，先看清楚上方數字減下方數字的個位夠不夠減。</li>
+                        <li><strong>第二步：處理個位數：</strong>若個位不夠減，需要向十位借 1（十位數字會變小），個位加上 10 後再相減。</li>
+                        <li><strong>第三步：點擊掉落方塊：</strong>當畫面下方掉落數字方塊時，點擊對應的正確個位數答案。</li>
+                        <li><strong>第四步：計算十位數：</strong>接著挑戰已經被借走 1 的十位數相減，點擊正確答案即可完成整題闖關。</li>
+                        <li><strong>貼心按鈕：</strong>遊戲過程中如果需要休息，可隨時點擊右上角的「暫停」按鈕。</li>
+                    </ul>
+                </div>
+
+                <button class="start-btn" onclick="startGame()">🎮 開始遊戲</button>
+            </div>
+        </div>
+
+        <h1>➖ 兩位數直式減法退位遊戲(進階版)</h1>
+        <div class="status-bar">
+            <div id="score">已完成: 0 關</div>
+            <button class="control-btn" id="pauseBtn" onclick="togglePause()">暫停</button>
+        </div>
+        
+        <div class="step-banner" id="stepBanner">請先算個位數相減！</div>
+
+        <!-- 兩位數直式呈現區 -->
+        <div class="vertical-math" id="mathBox">
+            <div class="carry-box" id="carryBox">-1</div>
+            <div class="operator">-</div>
+            
+            <div class="math-row">
+                <div class="cell" id="tUp">5</div>
+                <div class="cell" id="uUp">2</div>
+            </div>
+            
+            <div class="math-row">
+                <div class="cell" id="tDown">2</div>
+                <div class="cell" id="uDown">8</div>
+            </div>
+            
+            <div class="math-line"></div>
+            
+            <div class="math-row">
+                <div class="cell" id="ansT">?</div>
+                <div class="cell" id="ansU">?</div>
+            </div>
+        </div>
+
+        <div id="feedback" style="font-size: 15px; color: #d97706; font-weight: bold; min-height: 20px;"></div>
+        
+        <div id="drop-game-container"></div>
+    </div>
+
+    <script>
+        let score = 0;
+        let t1 = 5, u1 = 2, t2 = 2, u2 = 8;
+        let targetU = 4, targetT = 2; 
+        let currentStep = 'unit'; // 'unit' 代表正在算個位，'tens' 代表正在算十位
+        let gameInterval = null;
+        let activeOptions = [];
+        let isLocked = false;
+        let isPaused = false;
+        let nextQuestionTimeout = null;
+
+        function speak(text) {
+            if (isPaused) return;
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'zh-TW';
+            msg.rate = 0.85;
+            window.speechSynthesis.speak(msg);
+        }
+
+        function startGame() {
+            const dummy = new SpeechSynthesisUtterance("");
+            window.speechSynthesis.speak(dummy);
+            document.getElementById('startOverlay').style.display = 'none';
+            initQuestion();
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            const options = document.querySelectorAll('.falling-option');
+
+            if (isPaused) {
+                pauseBtn.innerText = "繼續";
+                pauseBtn.style.backgroundColor = "#16a34a";
+                if (gameInterval) clearInterval(gameInterval);
+                window.speechSynthesis.cancel();
+                options.forEach(el => el.style.animationPlayState = 'paused');
+                document.getElementById('feedback').innerText = "⏸️ 遊戲已暫停";
+            } else {
+                pauseBtn.innerText = "暫停";
+                pauseBtn.style.backgroundColor = "#f59e0b";
+                options.forEach(el => el.style.animationPlayState = 'running');
+                document.getElementById('feedback').innerText = "";
+                if (!isLocked) {
+                    setupFalling();
+                }
+            }
+        }
+
+        function initQuestion() {
+            if (isPaused) return;
+            isLocked = false;
+            currentStep = 'unit';
+            document.getElementById('carryBox').classList.remove('show');
+            document.getElementById('ansU').innerText = "?";
+            document.getElementById('ansT').innerText = "?";
+
+            // 設計需要退位的減法題目 (上方個位 < 下方個位)
+            const questions = [
+                {t1: 5, u1: 2, t2: 2, u2: 8}, // 52 - 28 = 24
+                {t1: 4, u1: 3, t2: 1, u2: 7}, // 43 - 17 = 26
+                {t1: 6, u1: 1, t2: 3, u2: 5}, // 61 - 35 = 26
+                {t1: 7, u1: 4, t2: 2, u2: 9}, // 74 - 29 = 45
+                {t1: 5, u1: 0, t2: 2, u2: 3}  // 50 - 23 = 27
+            ];
+            let q = questions[Math.floor(Math.random() * questions.length)];
+            t1 = q.t1; u1 = q.u1; t2 = q.t2; u2 = q.u2;
+            
+            targetU = (u1 + 10) - u2;
+            targetT = (t1 - 1) - t2; // 扣掉被借走的 1
+
+            document.getElementById('tUp').innerText = t1;
+            document.getElementById('uUp').innerText = u1;
+            document.getElementById('tDown').innerText = t2;
+            document.getElementById('uDown').innerText = u2;
+
+            document.getElementById('stepBanner').innerText = `步驟一：個位 ${u1} 減 ${u2} 不夠減，要向十位借 1！`;
+            speak(`步驟一，個位數，${u1}減${u2}不夠減，向十位借一。個位數是多少呢？方塊掉下來囉！`);
+
+            setupFalling();
+        }
+
+        function setupFalling() {
+            if (isPaused) return;
+            activeOptions.forEach(el => el.remove());
+            activeOptions = [];
+            if (gameInterval) clearInterval(gameInterval);
+
+            let currentTarget = (currentStep === 'unit') ? targetU : targetT;
+
+            let options = [currentTarget];
+            while (options.length < 4) {
+                let r = Math.floor(Math.random() * 10);
+                if (!options.includes(r)) options.push(r);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            let index = 0;
+            gameInterval = setInterval(() => {
+                if (isLocked || isPaused) return;
+                if (index >= options.length) index = 0;
+                spawnFallingOption(options[index]);
+                index++;
+            }, 2000);
+        }
+
+        function spawnFallingOption(val) {
+            if (isLocked || isPaused) return;
+            const container = document.getElementById('drop-game-container');
+            const el = document.createElement('div');
+            el.className = 'falling-option';
+            el.innerText = val;
+
+            const randomX = Math.random() * (container.clientWidth - 55);
+            el.style.left = randomX + 'px';
+            el.style.animationDuration = "6s"; 
+
+            let isHandled = false;
+            const handleSelect = (e) => {
+                if (e) e.preventDefault();
+                if (isLocked || isHandled || isPaused) return;
+
+                if (currentStep === 'unit') {
+                    if (val === targetU) {
+                        isHandled = true;
+                        isLocked = true;
+                        if (gameInterval) clearInterval(gameInterval);
+                        activeOptions.forEach(opt => opt.remove());
+
+                        document.getElementById('ansU').innerText = targetU;
+                        document.getElementById('carryBox').classList.add('show');
+
+                        document.getElementById('feedback').innerText = `🎉 個位算對了！十位被借走了 1。接下來算十位數！`;
+                        speak(`個位算對了，十位被借走 1。接下來，請算出十位數減完是多少呢？`);
+                        confetti();
+
+                        setTimeout(() => {
+                            if (isPaused) return;
+                            isLocked = false;
+                            currentStep = 'tens';
+                            document.getElementById('stepBanner').innerText = `步驟二：算十位數 (${t1} - 1) － ${t2}，等於多少呢？`;
+                            setupFalling();
+                        }, 3000);
+
+                    } else {
+                        isHandled = true;
+                        speak("再想一想，借 1 當作 10 之後，個位數減下來是多少呢？");
+                        document.getElementById('feedback').innerText = "❌ 個位數不對喔，請再找找看！";
+                        el.style.opacity = "0";
+                        setTimeout(() => el.remove(), 300);
+                    }
+
+                } else {
+                    if (val === targetT) {
+                        isHandled = true;
+                        isLocked = true;
+                        if (gameInterval) clearInterval(gameInterval);
+                        activeOptions.forEach(opt => opt.remove());
+
+                        document.getElementById('ansT').innerText = targetT;
+
+                        score++;
+                        document.getElementById('score').innerText = `已完成: ${score} 關`;
+                        document.getElementById('feedback').innerText = `🌟 太棒了！整題算完了，恭喜過關！`;
+                        speak(`太棒了，整題算完了，恭喜過關！`);
+                        confetti();
+
+                        if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+                        nextQuestionTimeout = setTimeout(() => {
+                            if (!isPaused) initQuestion();
+                        }, 6500);
+
+                    } else {
+                        isHandled = true;
+                        speak("再想一想，十位數被借走 1 之後，減掉下方的數字是多少呢？");
+                        document.getElementById('feedback').innerText = "❌ 十位數不對喔，別忘了十位已經被借走 1 囉！";
+                        el.style.opacity = "0";
+                        setTimeout(() => el.remove(), 300);
+                    }
+                }
+            };
+
+            el.addEventListener('click', handleSelect);
+            el.addEventListener('touchstart', handleSelect, { passive: false });
+            el.addEventListener('animationend', () => {
+                el.remove();
+                activeOptions = activeOptions.filter(item => item !== el);
+            });
+
+            container.appendChild(el);
+            activeOptions.push(el);
+        }
+    </script>
+</body>
+</html>
