@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>直式加法遊戲(氣球版：一位數／二位數)</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            margin: 0; padding: 0;
+            width: 100vw; height: 100vh; height: 100dvh;
+            font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif;
+            background: linear-gradient(135deg, #fdfbf7, #e0f2fe);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            overflow: hidden; touch-action: manipulation;
+        }
+
+        #gameScreen {
+            width: 100%; max-width: 540px;
+            height: 100%; max-height: 100dvh;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background: #fff; padding: 6px 10px env(safe-area-inset-bottom, 10px) 10px;
+            margin: 0 auto; position: relative;
+            overflow-y: auto; gap: 6px;
+        }
+        @media (min-width: 560px) {
+            #gameScreen {
+                border-radius: 16px; border: 3px solid #0284c7; max-height: 94vh; max-height: 94dvh; height: auto;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: auto;
+            }
+        }
+
+        #startOverlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.98); border-radius: 13px;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            z-index: 9999; padding: 15px; overflow-y: auto; text-align: left;
+        }
+        .start-content-box {
+            max-width: 420px; width: 100%; display: flex; flex-direction: column; align-items: center; margin: auto;
+        }
+        #startOverlay h2 { color: #0284c7; font-size: 20px; margin-bottom: 8px; text-align: center; }
+
+        .intro-card {
+            background: #f0f9ff; border: 2px solid #bae6fd;
+            border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; width: 100%;
+        }
+        .intro-card h3 { margin: 0 0 4px 0; font-size: 13px; color: #0284c7; }
+        .intro-card ul { margin: 0; padding-left: 16px; font-size: 11px; line-height: 1.5; color: #334155; }
+        .intro-card li { margin-bottom: 3px; }
+
+        .level-pick-title { font-size: 14px; font-weight: bold; color: #0284c7; margin: 6px 0 8px 0; }
+        .level-btn {
+            width: 100%; text-align: left; background: #fff; border: 2px solid #bae6fd;
+            border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; cursor: pointer;
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        .level-btn:active { transform: scale(0.98); background: #f0f9ff; }
+        .level-btn .lv-name { font-size: 15px; font-weight: bold; color: #0284c7; }
+        .level-btn .lv-desc { font-size: 12px; color: #334155; }
+
+        .status-bar {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; row-gap: 4px;
+            width: 100%; font-size: 13px; font-weight: bold; color: #0284c7;
+            border-bottom: 2px solid #e0f2fe; padding-bottom: 3px; padding-left: 4px; padding-right: 4px;
+            flex-shrink: 0;
+        }
+        .status-left { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.25; }
+        .status-left .level-label { font-size: 11px; color: #0369a1; }
+
+        .btn-group { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; row-gap: 4px; }
+        .control-btn {
+            background-color: #3b82f6; color: white; border: none; border-radius: 6px;
+            padding: 4px 9px; font-size: 12px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+        .control-btn:active { transform: scale(0.95); background-color: #2563eb; }
+        .speak-btn { background-color: #0ea5e9; }
+        .speak-btn:active { background-color: #0284c7; }
+        .hint-btn { background-color: #16a34a; }
+        .hint-btn:active { background-color: #15803d; }
+        .pause-btn-el { background-color: #f59e0b; }
+        .switch-btn { background-color: #64748b; }
+        .switch-btn:active { background-color: #475569; }
+
+        .top-panel {
+            display: flex; justify-content: space-between; align-items: center; width: 100%;
+            background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 4px 8px;
+            flex-shrink: 0; gap: 6px; flex-wrap: wrap; row-gap: 4px;
+        }
+        .speed-row { display: flex; gap: 3px; }
+        .speed-btn {
+            background: #e0f2fe; color: #0369a1; border: 2px solid #bae6fd;
+            border-radius: 6px; padding: 3px 6px; font-size: 11px; font-weight: bold; cursor: pointer;
+        }
+        .speed-btn.active { background: #0284c7; color: #fff; border-color: #026aa7; }
+        .speed-btn:active { transform: scale(0.95); }
+
+        .header-question-display {
+            background: #e0f2fe; border: 1.5px solid #0284c7; border-radius: 6px;
+            padding: 2px 6px; font-size: 13px; font-weight: bold; color: #0369a1;
+            flex-grow: 1; text-align: center; letter-spacing: 1px;
+        }
+
+        .step-banner {
+            background: #e0f2fe; color: #0369a1; padding: 6px 8px; border-radius: 6px;
+            font-size: 13px; font-weight: bold; width: 100%; line-height: 1.3; text-align: center;
+            flex-shrink: 0; border: 1.5px dashed #0284c7; min-height: 36px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .vertical-math {
+            display: inline-flex; flex-direction: column; align-items: flex-end;
+            font-size: 22px; font-weight: bold; font-family: monospace;
+            background: #f8fafc; padding: 6px 10px; border-radius: 10px; border: 2px solid #cbd5e1;
+            flex-shrink: 0;
+        }
+        .math-row { display: flex; gap: 4px; width: 100%; justify-content: flex-end; align-items: center; }
+        .math-line { width: 100%; height: 2px; background: #333; margin: 3px 0; }
+        .operator-cell { width: 20px; text-align: center; font-size: 20px; color: #333; flex-shrink: 0; }
+        .place-label { width: 30px; text-align: center; font-size: 10px; font-weight: bold; color: #64748b; flex-shrink: 0; transition: all 0.2s; }
+        .place-label.col-active { color: #0284c7; }
+        .cell {
+            width: 30px; text-align: center; display: flex; align-items: center; justify-content: center;
+            height: 34px; flex-shrink: 0; border-radius: 6px; transition: all 0.2s;
+        }
+        .cell.col-active { background: #dbeafe; box-shadow: 0 0 0 2px #0284c7; animation: colPulse 1s infinite; }
+        .cell.ans-active { border: 2.5px dashed #94a3b8; color: #cbd5e1; }
+        .cell.ans-active.col-active { border: 2.5px solid #16a34a; background: #dcfce7; color: #15803d; }
+        .cell.ans-filled { color: #166534; }
+
+        @keyframes colPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+        }
+
+        #drop-game-container {
+            position: relative; width: 100%; height: 140px; min-height: 140px; flex-grow: 1; max-height: 240px;
+            background: linear-gradient(180deg, #dff3ff, #f1f5f9);
+            border: 2px solid #cbd5e1; border-radius: 14px;
+            overflow: hidden; touch-action: manipulation;
+        }
+
+        /* 氣球：從下面慢慢往上飄，左右輕輕搖擺，答對時會開心戳破 */
+        .falling-option {
+            position: absolute; width: 54px; height: 66px;
+            border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: bold; color: #ffffff; cursor: pointer;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.55), 0 0 3px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2),
+                        inset -8px -8px 14px rgba(0,0,0,0.15),
+                        inset 8px 8px 14px rgba(255,255,255,0.45);
+            animation: floatUp linear forwards;
+            z-index: 999;
+        }
+        .falling-option::before {
+            content: ''; position: absolute; bottom: -6px; left: 50%;
+            width: 0; height: 0; transform: translateX(-50%);
+            border-left: 5px solid transparent; border-right: 5px solid transparent;
+            border-top: 6px solid var(--balloon-dark, #b91c1c);
+        }
+        .falling-option::after {
+            content: ''; position: absolute; bottom: -22px; left: 50%;
+            width: 2px; height: 20px; background: #94a3b8; transform: translateX(-50%);
+        }
+        .falling-option:active { transform: scale(0.92); }
+        .falling-option.hint-glow {
+            box-shadow: 0 0 0 4px #fde047, 0 4px 10px rgba(0,0,0,0.35);
+            animation: floatUp linear forwards, glowPulse 1s ease-in-out infinite;
+        }
+        .falling-option.popping { animation: popEffect 0.32s ease-out forwards !important; pointer-events: none; }
+        @keyframes glowPulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
+        @keyframes popEffect {
+            0% { transform: scale(1) rotate(0deg); opacity: 1; }
+            35% { transform: scale(1.35) rotate(-4deg); opacity: 1; }
+            100% { transform: scale(0.15) rotate(6deg); opacity: 0; }
+        }
+        @keyframes floatUp {
+            0%   { top: 100%; transform: translateX(0) rotate(-3deg); }
+            25%  { transform: translateX(8px) rotate(3deg); }
+            50%  { transform: translateX(-6px) rotate(-3deg); }
+            75%  { transform: translateX(6px) rotate(3deg); }
+            100% { top: -80px; transform: translateX(-4px) rotate(-2deg); }
+        }
+
+        #completeOverlay {
+            display: none;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.97); border-radius: 13px;
+            flex-direction: column; align-items: center; justify-content: center;
+            gap: 10px; z-index: 5000; text-align: center; padding: 16px;
+        }
+        #completeOverlay .equation {
+            font-family: monospace; font-size: 22px; font-weight: bold; color: #0284c7;
+            background: #f0f9ff; border: 3px solid #bae6fd; border-radius: 10px; padding: 10px 16px;
+        }
+        #completeOverlay .cheer { font-size: 16px; font-weight: bold; color: #0369a1; }
+    </style>
+</head>
+<body>
+
+    <div id="gameScreen">
+        <div id="startOverlay">
+            <div class="start-content-box">
+                <h2>🎈 直式加法遊戲(氣球版) 🎈</h2>
+
+                <div class="intro-card">
+                    <h3>📖 遊戲使用說明</h3>
+                    <ul>
+                        <li><strong>步驟清晰：</strong>依照個位、十位…的順序由右到左逐一挑戰。</li>
+                        <li><strong>看格子找答案：</strong>正在算的那一欄會發光標示，眼睛跟著發光的格子看就對了。</li>
+                        <li><strong>戳氣球作答：</strong>畫面下方會飄上來一顆顆氣球，點對答案的氣球會開心戳破！</li>
+                        <li><strong>卡住了嗎：</strong>按「💡提示」會給你線索！</li>
+                        <li><strong>語速與聽題目：</strong>可調整飄浮速度，隨時點擊「🔊聽題目」。</li>
+                    </ul>
+                </div>
+
+                <div class="level-pick-title">請選擇關卡：</div>
+                <div id="levelList" style="width:100%;"></div>
+            </div>
+        </div>
+
+        <h1 style="font-size: 14px; margin: 2px 0; color:#0284c7;">🎈 直式加法遊戲(氣球版)</h1>
+
+        <div class="status-bar">
+            <div class="status-left">
+                <span class="level-label" id="levelLabel">尚未選擇關卡</span>
+                <span id="score">已完成: 0 關</span>
+            </div>
+            <div class="btn-group">
+                <button class="control-btn hint-btn" onclick="useHint()">💡提示</button>
+                <button class="control-btn speak-btn" onclick="manualSpeak()">🔊聽題目</button>
+                <button class="control-btn pause-btn-el" id="pauseBtn" onclick="togglePause()">暫停</button>
+                <button class="control-btn switch-btn" onclick="showLevelSelect()">🔄換關卡</button>
+            </div>
+        </div>
+
+        <div class="top-panel">
+            <div class="speed-row">
+                <button class="speed-btn" id="speedSlow" onclick="setSpeed('slow')">🐢慢</button>
+                <button class="speed-btn active" id="speedNormal" onclick="setSpeed('normal')">🚶正常</button>
+                <button class="speed-btn" id="speedFast" onclick="setSpeed('fast')">🐇快</button>
+            </div>
+            <div class="header-question-display" id="headerQText">4 + 3 = ?</div>
+        </div>
+
+        <div class="step-banner" id="stepBanner">請先選擇關卡！</div>
+
+        <div class="vertical-math" id="mathBox">
+            <div class="math-row" id="labelRow">
+                <div class="operator-cell"></div>
+                <div class="place-label" id="lblT" style="display:none;">十位</div>
+                <div class="place-label">個位</div>
+            </div>
+
+            <div class="math-row">
+                <div class="operator-cell"></div>
+                <div class="cell" id="tUp" style="display:none;">4</div>
+                <div class="cell" id="uUp">5</div>
+            </div>
+
+            <div class="math-row">
+                <div class="operator-cell">+</div>
+                <div class="cell" id="tDown" style="display:none;">5</div>
+                <div class="cell" id="uDown">6</div>
+            </div>
+
+            <div class="math-line"></div>
+
+            <div class="math-row">
+                <div class="operator-cell"></div>
+                <div class="cell ans-active" id="ansT" style="display:none;">?</div>
+                <div class="cell ans-active" id="ansU">?</div>
+            </div>
+        </div>
+
+        <div id="feedback" style="font-size: 13px; color: #0369a1; font-weight: bold; min-height: 16px; flex-shrink: 0;"></div>
+
+        <div id="drop-game-container"></div>
+
+        <div id="completeOverlay">
+            <div class="equation" id="completeEquation">45 + 34 = 79</div>
+            <div class="cheer">🌟 太棒了，全部算完了！</div>
+        </div>
+    </div>
+
+    <script>
+        /* ========================================================
+           位值定義：由個位往外到十位。只用到兩位（一位數關卡只用個位）。
+           ======================================================== */
+        const PLACE_KEYS  = ['u', 't'];
+        const PLACE_LABEL = { u: '個位', t: '十位' };
+        const CELL_UP   = { u: 'uUp',   t: 'tUp' };
+        const CELL_DOWN = { u: 'uDown', t: 'tDown' };
+        const CELL_ANS  = { u: 'ansU',  t: 'ansT' };
+        const CELL_LBL  = { u: null,    t: 'lblT' };
+
+        const LEVELS = [
+            { id: 1, name: '第一關：一位數', desc: '練習個位的基礎直式加法。', digitCount: 1 },
+            { id: 2, name: '第二關：二位數', desc: '進階到十位，練習兩位數的直式加法。', digitCount: 2 }
+        ];
+
+        let currentLevel = null;
+        let score = 0;
+        let placesOrder = [];
+        let digitsUp = {}, digitsDown = {}, targets = {};
+        let stepIndex = 0;
+        let gameInterval = null;
+        let activeOptions = [];
+        let isLocked = false;
+        let isPaused = false;
+        let nextQuestionTimeout = null;
+        let actionTransitionTimeout = null;
+        let pendingAdvance = false;
+        let pendingNextQuestion = false;
+        let lastSpokenText = "";
+        let hintLevel = 0;
+        let hintActiveValue = null;
+        let speedMode = 'normal';
+        const SPEED_SETTINGS = {
+            slow:   { fallDuration: 8,   spawnInterval: 2800 },
+            normal: { fallDuration: 5.2, spawnInterval: 2000 },
+            fast:   { fallDuration: 3.2, spawnInterval: 1300 }
+        };
+
+        function speak(text, onEnd) {
+            lastSpokenText = text;
+            if (isPaused) { if (onEnd) onEnd(); return; }
+            if (!('speechSynthesis' in window)) { if (onEnd) onEnd(); return; }
+            try {
+                window.speechSynthesis.cancel();
+                let finished = false;
+                const trigger = () => { if (finished) return; finished = true; if (onEnd) onEnd(); };
+                setTimeout(() => {
+                    if (isPaused) { trigger(); return; }
+                    try {
+                        const utter = new SpeechSynthesisUtterance(text);
+                        utter.lang = 'zh-TW';
+                        utter.rate = 0.88;
+                        utter.pitch = 1.1;
+                        utter.volume = 1.0;
+                        const voices = window.speechSynthesis.getVoices();
+                        const femalePattern = /female|女|meijia|mei-jia|yating|ya-ting|tingting|xiaoxiao|xiaoyi|hanhan|sinji|sin-ji|zhiyu|xiaoshuang|yaoyao/i;
+                        const zhVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('zh'));
+                        const picked = zhVoices.find(v => femalePattern.test(v.name));
+                        if (picked) utter.voice = picked;
+                        utter.onend = trigger;
+                        utter.onerror = trigger;
+                        window.speechSynthesis.speak(utter);
+                        const fallbackTime = Math.max(1500, text.length * 280 / 0.88);
+                        setTimeout(trigger, fallbackTime);
+                    } catch (e) { trigger(); }
+                }, 70);
+            } catch (e) { if (onEnd) onEnd(); }
+        }
+
+        function manualSpeak() { speak(lastSpokenText || "請依照步驟計算直式加法。"); }
+        function boom() { try { confetti(); } catch (e) {} }
+
+        function renderLevelList() {
+            const container = document.getElementById('levelList');
+            container.innerHTML = '';
+            LEVELS.forEach(lv => {
+                const btn = document.createElement('div');
+                btn.className = 'level-btn';
+                btn.innerHTML = `<span class="lv-name">${lv.name}</span><span class="lv-desc">${lv.desc}</span>`;
+                btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startGame(lv.id); });
+                container.appendChild(btn);
+            });
+        }
+
+        function showLevelSelect() {
+            isPaused = false;
+            pendingAdvance = false;
+            pendingNextQuestion = false;
+            if (gameInterval) clearInterval(gameInterval);
+            if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+            if (actionTransitionTimeout) clearTimeout(actionTransitionTimeout);
+            activeOptions.forEach(el => el.remove());
+            activeOptions = [];
+            hideCompletionScreen();
+            try { window.speechSynthesis.cancel(); } catch (e) {}
+            document.getElementById('startOverlay').style.display = 'flex';
+        }
+
+        function startGame(levelId) {
+            const overlay = document.getElementById('startOverlay');
+            if (overlay.style.display === 'none') return;
+            currentLevel = LEVELS.find(l => l.id === levelId);
+            document.getElementById('levelLabel').innerText = currentLevel.name;
+
+            if ('speechSynthesis' in window) {
+                try {
+                    window.speechSynthesis.cancel();
+                    let unlock = new SpeechSynthesisUtterance("遊戲開始");
+                    unlock.volume = 0.01;
+                    window.speechSynthesis.speak(unlock);
+                } catch (e) {}
+            }
+
+            score = 0;
+            document.getElementById('score').innerText = `已完成: ${score} 關`;
+            overlay.style.display = 'none';
+            initQuestion();
+        }
+
+        function setSpeed(mode) {
+            speedMode = mode;
+            ['slow', 'normal', 'fast'].forEach(m => {
+                document.getElementById('speed' + m.charAt(0).toUpperCase() + m.slice(1))
+                    .classList.toggle('active', m === mode);
+            });
+            if (!isPaused && !isLocked && currentLevel) setupFalling();
+        }
+
+        function togglePause() {
+            if (!currentLevel) return;
+            isPaused = !isPaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            const options = document.querySelectorAll('.falling-option');
+
+            if (isPaused) {
+                pauseBtn.innerText = "繼續";
+                pauseBtn.style.backgroundColor = "#16a34a";
+                if (gameInterval) clearInterval(gameInterval);
+                if (actionTransitionTimeout) clearTimeout(actionTransitionTimeout);
+                if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+                try { window.speechSynthesis.cancel(); } catch (e) {}
+                options.forEach(el => el.style.animationPlayState = 'paused');
+                document.getElementById('feedback').innerText = "⏸️ 遊戲已暫停";
+            } else {
+                pauseBtn.innerText = "暫停";
+                pauseBtn.style.backgroundColor = "#f59e0b";
+                options.forEach(el => el.style.animationPlayState = 'running');
+                document.getElementById('feedback').innerText = "";
+                if (pendingNextQuestion) {
+                    pendingNextQuestion = false;
+                    hideCompletionScreen();
+                    initQuestion();
+                } else if (pendingAdvance) {
+                    pendingAdvance = false;
+                    runStep();
+                } else if (!isLocked) {
+                    setupFalling();
+                }
+            }
+        }
+
+        function generateQuestion(level) {
+            const places = PLACE_KEYS.slice(0, level.digitCount);
+            const highest = places[places.length - 1];
+            const up = {}, down = {};
+            places.forEach(p => {
+                if (p === highest) {
+                    up[p] = Math.floor(Math.random() * 4) + 1;
+                    down[p] = Math.floor(Math.random() * 4) + 1;
+                } else {
+                    up[p] = Math.floor(Math.random() * 5);
+                    down[p] = Math.floor(Math.random() * 5);
+                }
+            });
+            return { places, up, down };
+        }
+
+        function numFromDigits(places, digits) {
+            let n = 0;
+            places.slice().reverse().forEach(p => { n = n * 10 + digits[p]; });
+            return n;
+        }
+
+        function initQuestion() {
+            if (isPaused || !currentLevel) return;
+            hideCompletionScreen();
+            isLocked = false;
+            hintLevel = 0;
+            hintActiveValue = null;
+
+            const q = generateQuestion(currentLevel);
+            placesOrder = q.places;
+            digitsUp = q.up;
+            digitsDown = q.down;
+            targets = {};
+            placesOrder.forEach(p => { targets[p] = digitsUp[p] + digitsDown[p]; });
+            stepIndex = 0;
+
+            const needT = placesOrder.includes('t');
+            [CELL_UP.t, CELL_DOWN.t, CELL_ANS.t, CELL_LBL.t].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = needT ? (id.startsWith('lbl') ? 'block' : 'flex') : 'none';
+            });
+
+            placesOrder.forEach(p => {
+                document.getElementById(CELL_UP[p]).innerText = digitsUp[p];
+                document.getElementById(CELL_DOWN[p]).innerText = digitsDown[p];
+                const ansEl = document.getElementById(CELL_ANS[p]);
+                ansEl.innerText = '?';
+                ansEl.className = 'cell ans-active';
+                const lblEl = document.getElementById(CELL_LBL[p]);
+                if (lblEl) lblEl.classList.remove('col-active');
+            });
+            document.querySelectorAll('.place-label').forEach(el => el.classList.remove('col-active'));
+            document.querySelectorAll('.cell').forEach(el => el.classList.remove('col-active'));
+
+            const num1 = numFromDigits(placesOrder, digitsUp);
+            const num2 = numFromDigits(placesOrder, digitsDown);
+            document.getElementById('headerQText').innerText = `${num1} + ${num2} = ?`;
+
+            speak(`我們來算 ${num1} 加 ${num2}。`, () => { runStep(); });
+        }
+
+        function runStep() {
+            if (isPaused || !currentLevel) return;
+            const p = placesOrder[stepIndex];
+            if (!p) return;
+            isLocked = false;
+            hintLevel = 0;
+            hintActiveValue = null;
+
+            document.querySelectorAll('.place-label, .cell').forEach(el => el.classList.remove('col-active'));
+            document.getElementById(CELL_UP[p]).classList.add('col-active');
+            document.getElementById(CELL_DOWN[p]).classList.add('col-active');
+            document.getElementById(CELL_ANS[p]).classList.add('col-active');
+            const lblEl = p === 'u' ? document.querySelector('.place-label:last-child') : document.getElementById(CELL_LBL[p]);
+            if (lblEl) lblEl.classList.add('col-active');
+
+            const label = PLACE_LABEL[p];
+            document.getElementById('stepBanner').innerText =
+                `請算「${label}」：${digitsUp[p]} 加 ${digitsDown[p]}，等於多少？`;
+            speak(`請算${label}，${digitsUp[p]} 加 ${digitsDown[p]}，等於多少呢？`);
+            setupFalling();
+        }
+
+        function setupFalling() {
+            if (isPaused || !currentLevel) return;
+            activeOptions.forEach(el => el.remove());
+            activeOptions = [];
+            if (gameInterval) clearInterval(gameInterval);
+
+            const p = placesOrder[stepIndex];
+            if (!p) return;
+            const target = targets[p];
+
+            let options = [target];
+            while (options.length < 4) {
+                const r = Math.floor(Math.random() * 10);
+                if (!options.includes(r)) options.push(r);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            let idx = 0;
+            const spawn = () => {
+                if (isLocked || isPaused) return;
+                if (idx >= options.length) idx = 0;
+                spawnFallingOption(options[idx]);
+                idx++;
+            };
+            spawn();
+            gameInterval = setInterval(spawn, SPEED_SETTINGS[speedMode].spawnInterval);
+        }
+
+        function useHint() {
+            if (isPaused || isLocked || !currentLevel) return;
+            const p = placesOrder[stepIndex];
+            if (!p) return;
+            hintLevel++;
+            const target = targets[p];
+
+            if (hintLevel === 1) {
+                const text = `🔍 提示：${digitsUp[p]} 加 ${digitsDown[p]}，可以用手指數數看！`;
+                document.getElementById('feedback').innerText = text;
+                speak(`${digitsUp[p]} 加 ${digitsDown[p]}，可以用手指數數看！`);
+            } else {
+                const text = `💡 答案是 ${target}！找找看畫面上飄浮的這個數字！`;
+                document.getElementById('feedback').innerText = text;
+                speak(`答案是 ${target}，找找看畫面上的這個數字！`);
+                hintActiveValue = target;
+                activeOptions.forEach(opt => {
+                    if (opt.dataset.val === String(target)) opt.classList.add('hint-glow');
+                });
+            }
+        }
+
+        function showCompletionScreen() {
+            const num1 = numFromDigits(placesOrder, digitsUp);
+            const num2 = numFromDigits(placesOrder, digitsDown);
+            const ansDigits = {};
+            placesOrder.forEach(p => { ansDigits[p] = targets[p]; });
+            const ansNum = numFromDigits(placesOrder, ansDigits);
+            document.getElementById('completeEquation').innerText = `${num1} + ${num2} = ${ansNum}`;
+            document.getElementById('completeOverlay').style.display = 'flex';
+            const screen = document.getElementById('gameScreen');
+            if (screen) screen.scrollTop = 0;
+        }
+        function hideCompletionScreen() {
+            document.getElementById('completeOverlay').style.display = 'none';
+        }
+
+        function spawnFallingOption(val) {
+            if (isLocked || isPaused) return;
+            const container = document.getElementById('drop-game-container');
+            const el = document.createElement('div');
+            el.className = 'falling-option';
+            el.innerText = val;
+            el.dataset.val = String(val);
+            if (hintActiveValue !== null && val === hintActiveValue) el.classList.add('hint-glow');
+
+            const colors = ['#dc2626', '#c2410c', '#ca8a04', '#16a34a', '#0284c7', '#7c3aed', '#db2777'];
+            const dark = colors[Math.floor(Math.random() * colors.length)];
+            el.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.08) 16%, ${dark} 42%, ${dark} 100%)`;
+            el.style.setProperty('--balloon-dark', dark);
+
+            const randomX = Math.random() * (container.clientWidth - 54);
+            el.style.left = randomX + 'px';
+            el.style.animationDuration = SPEED_SETTINGS[speedMode].fallDuration + 's';
+            if (isPaused) el.style.animationPlayState = 'paused';
+
+            let isHandled = false;
+            const handleSelect = (e) => {
+                if (e) { e.preventDefault(); e.stopPropagation(); }
+                if (isLocked || isHandled || isPaused) return;
+
+                const p = placesOrder[stepIndex];
+                if (!p) return;
+                const target = targets[p];
+
+                if (val === target) {
+                    isHandled = true;
+                    isLocked = true;
+                    if (gameInterval) clearInterval(gameInterval);
+
+                    playPopSound();
+                    el.classList.add('popping');
+                    setTimeout(() => el.remove(), 320);
+                    activeOptions.forEach(opt => { if (opt !== el) opt.remove(); });
+                    activeOptions = [];
+
+                    handleCorrect(p, val);
+                } else {
+                    isHandled = true;
+                    speak(`再想一想，${PLACE_LABEL[p]}加起來等於多少呢？`);
+                    document.getElementById('feedback').innerText = `❌ ${PLACE_LABEL[p]}不對喔，再試一次！`;
+                    el.style.transition = "opacity 0.3s";
+                    el.style.opacity = "0";
+                    setTimeout(() => el.remove(), 300);
+                }
+            };
+
+            el.addEventListener('pointerdown', handleSelect);
+            el.addEventListener('animationend', () => {
+                el.remove();
+                activeOptions = activeOptions.filter(item => item !== el);
+            });
+
+            container.appendChild(el);
+            activeOptions.push(el);
+        }
+
+        /* ========================================================
+           音效：鐘聲琶音答對音、氣球戳破聲，跟系列其他遊戲一致。
+           ======================================================== */
+        let audioCtx;
+        function playTone(freq, startTime, duration, peakVol, type) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type || 'sine';
+            osc.frequency.setValueAtTime(freq, startTime);
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(peakVol, startTime + 0.015);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(startTime); osc.stop(startTime + duration + 0.02);
+        }
+        function playPopSound() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(720, now);
+            osc.frequency.exponentialRampToValueAtTime(110, now + 0.11);
+            gain.gain.setValueAtTime(0.38, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.14);
+        }
+        function playCheerSound() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+                const t = now + i * 0.085;
+                playTone(f, t, 0.34, 0.26, 'sine');
+                playTone(f * 2, t, 0.28, 0.07, 'sine');
+            });
+        }
+
+        function handleCorrect(p, val) {
+            const ansEl = document.getElementById(CELL_ANS[p]);
+            ansEl.innerText = val;
+            ansEl.classList.remove('col-active');
+            ansEl.classList.add('ans-filled');
+
+            const isLast = stepIndex === placesOrder.length - 1;
+
+            if (isLast) {
+                score++;
+                document.getElementById('score').innerText = `已完成: ${score} 關`;
+                document.getElementById('feedback').innerText = `🌟 太棒了！整題算完了，恭喜過關！`;
+
+                playCheerSound();
+                boom();
+                showCompletionScreen();
+                pendingNextQuestion = true;
+                const goNext = () => {
+                    if (!pendingNextQuestion) return;
+                    if (isPaused) return;
+                    if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+                    pendingNextQuestion = false;
+                    initQuestion();
+                };
+                speak(`太棒了，整題算完了，恭喜過關！`, () => {
+                    if (!pendingNextQuestion) return;
+                    if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+                    nextQuestionTimeout = setTimeout(goNext, 1000);
+                });
+                if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+                nextQuestionTimeout = setTimeout(goNext, 6000);
+            } else {
+                boom();
+                document.getElementById('feedback').innerText = `🎉 ${PLACE_LABEL[p]}算對了！`;
+                stepIndex++;
+                pendingAdvance = true;
+                const nextPlace = placesOrder[stepIndex];
+                const goToNext = () => {
+                    if (!pendingAdvance) return;
+                    if (isPaused) return;
+                    if (actionTransitionTimeout) clearTimeout(actionTransitionTimeout);
+                    pendingAdvance = false;
+                    runStep();
+                };
+                speak(`${PLACE_LABEL[p]}算對了。接下來，請算出${PLACE_LABEL[nextPlace]}是多少呢？`, () => {
+                    if (!pendingAdvance) return;
+                    if (actionTransitionTimeout) clearTimeout(actionTransitionTimeout);
+                    actionTransitionTimeout = setTimeout(goToNext, 600);
+                });
+                if (actionTransitionTimeout) clearTimeout(actionTransitionTimeout);
+                actionTransitionTimeout = setTimeout(goToNext, 5000);
+            }
+        }
+
+        renderLevelList();
+    </script>
+</body>
+</html>
