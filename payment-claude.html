@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+<title>互動付錢遊戲($1$5$10)</title>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<style>
+  * {
+    box-sizing: border-box;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  html, body {
+    margin: 0; padding: 0; height: 100vh; height: 100dvh; width: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif;
+    background-color: #f4f4f4;
+  }
+
+  #gameContainer {
+    display: flex; flex-direction: column; height: 100%; width: 100%;
+    max-width: 600px; margin: 0 auto;
+    position: relative;
+  }
+
+  #startScreen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: #e0f2fe; color: #1e293b; z-index: 9999;
+    display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
+    overflow-y: auto; padding: 20px 20px; text-align: left;
+  }
+  .start-content-box {
+    max-width: 500px; width: 100%; display: flex; flex-direction: column; align-items: center; margin: auto 0;
+  }
+  #startScreen h1 { font-size: 26px; color: #0284c7; margin: 0 0 12px 0; text-align: center; }
+
+  .intro-card {
+    background: #ffffff; border: 2px solid #cbd5e1;
+    border-radius: 12px; padding: 10px 15px; margin-bottom: 10px; width: 100%;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  }
+  .intro-card h3 { margin: 0 0 6px 0; font-size: 14px; color: #0f172a; }
+  .intro-card ul { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.5; color: #334155; }
+  .intro-card li { margin-bottom: 3px; }
+
+  .level-pick-title { font-size: 13px; font-weight: bold; color: #0284c7; margin: 6px 0; width: 100%; text-align: left; }
+  .level-btn {
+    width: 100%; text-align: left; background: #fff; border: 2px solid #bae6fd;
+    border-radius: 10px; padding: 9px 12px; margin-bottom: 8px; cursor: pointer;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .level-btn:active { transform: scale(0.98); background: #f0f9ff; }
+  .level-btn .lv-name { font-size: 14px; font-weight: bold; color: #0284c7; }
+  .level-btn .lv-desc { font-size: 11px; color: #334155; }
+
+  .header {
+    padding: 8px 10px; text-align: center; background: #fff;
+    flex: 0 0 auto;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; row-gap: 4px;
+  }
+  .header-left { display: flex; align-items: center; gap: 8px; }
+  .box-icon { font-size: 26px; line-height: 1; }
+  .target-display { font-size: 22px; font-weight: bold; color: #d32f2f; }
+
+  .header-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; row-gap: 4px; }
+  .score-display { font-size: 13px; font-weight: bold; color: #334155; background: #f1f5f9; padding: 5px 8px; border-radius: 8px; }
+
+  .control-btn {
+    font-size: 12px; font-weight: bold; padding: 6px 10px;
+    background: #3b82f6; color: white; border: none; border-radius: 8px;
+    cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+  .control-btn:active { transform: scale(0.95); }
+  .pause-btn { background: #f59e0b; }
+  .hint-btn { background: #16a34a; }
+  .switch-btn { background: #64748b; }
+
+  .speed-row { display: flex; gap: 4px; justify-content: center; padding: 4px 10px 0 10px; flex-shrink: 0; }
+  .speed-btn {
+    flex: 1; max-width: 100px; background: #f1f5f9; color: #334155; border: 2px solid #cbd5e1;
+    border-radius: 8px; padding: 3px 4px; font-size: 12px; font-weight: bold; cursor: pointer;
+  }
+  .speed-btn.active { background: #3b82f6; color: #fff; border-color: #2563eb; }
+  .speed-btn:active { transform: scale(0.95); }
+
+  #warningMsg { font-size: 14px; font-weight: bold; color: #e65100; min-height: 20px; background: #fff; text-align: center; flex-shrink: 0; }
+
+  .drop-field {
+    flex: 1 1 auto;
+    margin: 8px 10px; padding: 10px;
+    border: 3px dashed #aaa; background: #eef; border-radius: 15px;
+    position: relative;
+    overflow: hidden;
+    touch-action: none;
+    min-height: 140px;
+  }
+
+  .tray {
+    height: 84px;
+    flex: 0 0 auto;
+    margin: 0 10px 8px 10px; padding: 8px;
+    border: 2px solid #cbd5e1; background: #ffffff; border-radius: 12px;
+    display: flex; flex-wrap: wrap; align-content: flex-start; gap: 5px;
+    overflow-y: auto;
+  }
+
+  .wallet {
+    height: 62px; flex: 0 0 auto;
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+    background: linear-gradient(180deg, #8b5cf6, #6d28d9);
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.2);
+    padding-bottom: env(safe-area-inset-bottom);
+    font-size: 17px; font-weight: bold; color: #fff;
+  }
+  .wallet .purse-icon { font-size: 26px; }
+  .wallet .amount-badge {
+    background: #fff; color: #6d28d9; padding: 3px 12px; border-radius: 20px;
+    font-size: 19px; font-weight: bold; box-shadow: inset 0 1px 3px rgba(0,0,0,0.15);
+  }
+
+  .coin {
+    border-radius: 50%; display: flex; justify-content: center; align-items: center;
+    font-weight: bold; cursor: pointer;
+    position: relative;
+    transition: transform 0.1s;
+  }
+  .coin:active { transform: scale(0.9); }
+
+  /* 硬幣邊緣的滾花紋路，用重複漸層模擬真實硬幣的鋸齒邊 */
+  .coin::before {
+    content: ''; position: absolute; inset: -3px; border-radius: 50%;
+    background: repeating-conic-gradient(from 0deg, rgba(0,0,0,0.22) 0deg 4deg, rgba(255,255,255,0.12) 4deg 8deg);
+    z-index: -1;
+  }
+  /* 硬幣表面的光澤掃過效果 */
+  .coin::after {
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.55) 46%, transparent 62%);
+    background-size: 250% 250%; background-position: 100% 0%;
+    animation: coinShine 3.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes coinShine {
+    0%, 100% { background-position: 130% -30%; }
+    50% { background-position: -30% 130%; }
+  }
+
+  .coin span.coin-num { position: relative; z-index: 2; text-shadow: 0 1px 1px rgba(255,255,255,0.5), 0 -1px 1px rgba(0,0,0,0.25); }
+
+  /* 1元：銅色系，仿真實硬幣的單色金屬感 */
+  .coin-1 {
+    color: #6b3f1d;
+    background: radial-gradient(circle at 32% 26%, #ffedd0 0%, #e8b978 30%, #c98a42 60%, #96602a 100%);
+    box-shadow: 0 3px 7px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.55), inset 0 -3px 5px rgba(0,0,0,0.3);
+  }
+  /* 5元：銀色系 */
+  .coin-5 {
+    color: #33414f;
+    background: radial-gradient(circle at 32% 26%, #ffffff 0%, #e2e8f0 30%, #b7c2cd 60%, #7d8b99 100%);
+    box-shadow: 0 3px 7px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.7), inset 0 -3px 5px rgba(0,0,0,0.25);
+  }
+  /* 10元：仿真實雙色硬幣，銀色內圈 + 金色外圈 */
+  .coin-10 {
+    color: #5a4008;
+    background:
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,0.65), rgba(255,255,255,0) 32%),
+      radial-gradient(circle, #eef1f4 0%, #eef1f4 52%, #c7cdd3 56%, #fdedb0 60%, #f0c14b 78%, #b8860b 100%);
+    box-shadow: 0 3px 7px rgba(0,0,0,0.4), inset 0 2px 3px rgba(255,255,255,0.6), inset 0 -3px 5px rgba(0,0,0,0.3);
+  }
+
+  .drop-field .coin {
+    position: absolute;
+    width: 66px; height: 66px; font-size: 25px;
+    z-index: 10;
+    animation: coinSpin 2.4s linear infinite;
+  }
+  @keyframes coinSpin {
+    0%, 100% { transform: rotate(-4deg); }
+    50% { transform: rotate(4deg); }
+  }
+  .drop-field .coin.hint-glow {
+    box-shadow: 0 0 0 4px #86efac, 0 3px 8px rgba(0,0,0,0.3);
+  }
+  .drop-field .coin.rejecting {
+    animation: rejectShake 0.35s ease-in-out;
+  }
+  @keyframes rejectShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px) scale(0.95); }
+    75% { transform: translateX(6px) scale(0.95); }
+  }
+
+  .tray .coin { width: 38px; height: 38px; font-size: 16px; }
+
+  #completeOverlay {
+    display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255,255,255,0.96); z-index: 7000;
+    flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px;
+  }
+  #completeOverlay .equation {
+    font-family: monospace; font-size: 22px; font-weight: bold; color: #0284c7;
+    background: #f0f9ff; border: 3px solid #bae6fd; border-radius: 10px; padding: 10px 18px;
+  }
+  #completeOverlay .cheer { font-size: 16px; font-weight: bold; color: #1e40af; }
+</style>
+</head>
+<body>
+
+  <div id="startScreen">
+    <div class="start-content-box">
+      <h1>🪙 互動付錢遊戲</h1>
+
+      <div class="intro-card">
+        <h3>📖 操作使用說明</h3>
+        <ul>
+          <li><strong>步驟一(看目標)：</strong>觀察畫面左上角禮物盒提示的「要付金額」。</li>
+          <li><strong>步驟二(點硬幣)：</strong>當畫面中掉落 1 元、5 元或 10 元硬幣時,用手指點擊收集它們。</li>
+          <li><strong>步驟三(集滿過關)：</strong>收集到剛好的金額即可自動通關!系統會自動幫您把零錢換成十元硬幣。</li>
+          <li><strong>步驟四(超額處理)：</strong>如果點到會讓金額超過的硬幣,那一枚會被退回,已經收集的錢不會被清空。</li>
+          <li><strong>卡住了嗎：</strong>按「💡提示」會給你線索!</li>
+        </ul>
+      </div>
+
+      <div class="level-pick-title">請選擇關卡：</div>
+      <div id="levelList" style="width:100%;"></div>
+    </div>
+  </div>
+
+  <div id="gameContainer">
+    <div class="header">
+      <div class="header-left">
+        <div class="box-icon">🎁</div>
+        <div class="target-display">要付 <span id="displayTarget">?</span> 元</div>
+      </div>
+      <div class="header-right">
+        <div class="score-display" id="levelLabel">關卡</div>
+        <div class="score-display">已完成: <span id="successCount">0</span> 關</div>
+        <button class="control-btn hint-btn" onclick="useHint()">💡提示</button>
+        <button class="control-btn pause-btn" id="pauseBtn" onclick="togglePause()">⏸ 暫停</button>
+        <button class="control-btn switch-btn" onclick="showLevelSelect()">🔄換關卡</button>
+      </div>
+    </div>
+    <div id="pairLabel" style="width:100%; text-align:center; font-size:13px; font-weight:bold; color:#7c3aed; background:#f5f3ff; padding:3px 0; flex-shrink:0;">本題貨幣：1元 + 5元</div>
+    <div class="speed-row">
+      <button class="speed-btn" id="speedSlow" onclick="setSpeed('slow')">🐢慢</button>
+      <button class="speed-btn active" id="speedNormal" onclick="setSpeed('normal')">🚶正常</button>
+      <button class="speed-btn" id="speedFast" onclick="setSpeed('fast')">🐇快</button>
+    </div>
+    <div id="warningMsg"></div>
+
+    <div class="drop-field" id="dropField"></div>
+    <div class="tray" id="trayCoins"></div>
+
+    <div class="wallet" id="wallet">
+      <span class="purse-icon">👛</span> 已收集：<span class="amount-badge"><span id="currentAmount">0</span> 元</span>
+    </div>
+
+    <div id="completeOverlay">
+      <div class="equation" id="completeEquation">23 元</div>
+      <div class="cheer">🌟 太棒了，答對了！</div>
+    </div>
+  </div>
+
+<script>
+  // 三種可能的「兩種貨幣」組合。第一關固定用第0組；第二、三關每題隨機抽一組。
+  const COIN_PAIRS = [
+    { label: '1元 + 5元', weights: { 10: 0, 5: 0.45, 1: 0.55 }, step: 1 },
+    { label: '5元 + 10元', weights: { 10: 0.5, 5: 0.5, 1: 0 }, step: 5 },
+    { label: '1元 + 10元', weights: { 10: 0.5, 5: 0, 1: 0.5 }, step: 1 }
+  ];
+
+  const LEVELS = [
+    { id: 1, name: '第一關：1元 + 5元', desc: '只出現 1 元和 5 元，目標金額 5~20 元。', targetRange: [5, 20], fixedPair: 0 },
+    { id: 2, name: '第二關：兩種貨幣隨機', desc: '每一題隨機出現三種貨幣中的兩種，目標金額 10~100 元。', targetRange: [10, 100], fixedPair: null },
+    { id: 3, name: '第三關：挑戰關卡', desc: '每一題隨機兩種貨幣，目標金額 10~200 元，數字更大！', targetRange: [10, 200], fixedPair: null }
+  ];
+
+  let currentPair = COIN_PAIRS[0]; // 這一題實際使用的貨幣組合
+
+  const SPEED_SETTINGS = {
+    slow:   { fallDuration: [9, 12], spawnInterval: 2800 },
+    normal: { fallDuration: [7, 10], spawnInterval: 2200 },
+    fast:   { fallDuration: [4.5, 6.5], spawnInterval: 1500 }
+  };
+
+  let currentLevel = null;
+  let count10 = 0, count5 = 0, count1 = 0;
+  let currentTarget = 0;
+  let successCount = 0;
+  let audioUnlocked = false;
+  let isWinning = false;
+  let isPaused = false;
+  let dropInterval = null;
+  let activeCoins = [];
+  let hintLevel = 0;
+  let hintActiveType = null;
+  let speedMode = 'normal';
+  let lastActionWasSpecial = false; // 換算或答對剛發生時，跳過例行的「目前金額」語音，避免互相打斷
+
+  const displayTarget = document.getElementById('displayTarget');
+  const successCountSpan = document.getElementById('successCount');
+  const trayCoins = document.getElementById('trayCoins');
+  const dropField = document.getElementById('dropField');
+  const startScreen = document.getElementById('startScreen');
+  const currentAmountSpan = document.getElementById('currentAmount');
+  const warningMsg = document.getElementById('warningMsg');
+  const pauseBtn = document.getElementById('pauseBtn');
+
+  let audioCtx;
+  function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playTone(freq, type, duration, vol = 0.5, startOffset = 0) {
+    if (!audioCtx) return;
+    const startTime = audioCtx.currentTime + startOffset;
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, startTime);
+    gainNode.gain.setValueAtTime(vol, startTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    osc.start(startTime);
+    osc.stop(startTime + duration);
+  }
+
+  function playDropSound() { playTone(500, 'sine', 0.1, 0.25); }
+  function playPickupSound() { playTone(800, 'sine', 0.1, 0.3); }
+  function playExchangeSound() { playTone(700, 'triangle', 0.15, 0.35); playTone(1000, 'triangle', 0.2, 0.3, 0.1); }
+  function playRejectSound() { playTone(220, 'sine', 0.14, 0.28); playTone(170, 'sine', 0.16, 0.28, 0.1); }
+  function playCheerSound() {
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((f, i) => playTone(f, 'sine', 0.3, 0.35, i * 0.09));
+  }
+
+  /* ========================================================
+     語音排隊：避免「答對了」被隨後的「換算十元」訊息打斷。
+     每一句話都排隊播放，講完才播下一句；例行的「目前金額」
+     播報屬於低優先權，若有換算/答對這類重要訊息要講，
+     就不再另外播報金額，避免互相搶話。
+     ======================================================== */
+  let speechQueue = [];
+  let isSpeaking = false;
+  function enqueueSpeech(text, rate) {
+    if (!audioUnlocked) return;
+    speechQueue.push({ text, rate });
+    processSpeechQueue();
+  }
+  function processSpeechQueue() {
+    if (isSpeaking || speechQueue.length === 0) return;
+    isSpeaking = true;
+    const { text, rate } = speechQueue.shift();
+    try {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'zh-TW';
+      utter.rate = rate;
+      let done = false;
+      const finish = () => { if (done) return; done = true; isSpeaking = false; processSpeechQueue(); };
+      utter.onend = finish;
+      utter.onerror = finish;
+      window.speechSynthesis.speak(utter);
+      setTimeout(finish, Math.max(1200, text.length * 300 / rate));
+    } catch (e) {
+      isSpeaking = false;
+    }
+  }
+  function clearSpeechQueue() {
+    speechQueue = [];
+    try { window.speechSynthesis.cancel(); } catch (e) {}
+    isSpeaking = false;
+  }
+
+  function renderLevelList() {
+    const container = document.getElementById('levelList');
+    container.innerHTML = '';
+    LEVELS.forEach(lv => {
+      const btn = document.createElement('div');
+      btn.className = 'level-btn';
+      btn.innerHTML = `<span class="lv-name">${lv.name}</span><span class="lv-desc">${lv.desc}</span>`;
+      btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startGame(lv.id); });
+      container.appendChild(btn);
+    });
+  }
+
+  function showLevelSelect() {
+    isPaused = false;
+    if (dropInterval) clearInterval(dropInterval);
+    activeCoins.forEach(c => c.remove());
+    activeCoins = [];
+    clearSpeechQueue();
+    hideCompletionScreen();
+    startScreen.style.display = 'flex';
+  }
+
+  function startGame(levelId) {
+    if (startScreen.style.display === 'none') return;
+    currentLevel = LEVELS.find(l => l.id === levelId);
+    document.getElementById('levelLabel').innerText = currentLevel.name;
+
+    initAudio();
+    let unlockSpeech = new SpeechSynthesisUtterance('');
+    window.speechSynthesis.speak(unlockSpeech);
+    audioUnlocked = true;
+
+    startScreen.style.display = 'none';
+    successCount = 0;
+    successCountSpan.innerText = successCount;
+    nextQuestion();
+  }
+
+  function setSpeed(mode) {
+    speedMode = mode;
+    ['slow', 'normal', 'fast'].forEach(m => {
+      document.getElementById('speed' + m.charAt(0).toUpperCase() + m.slice(1)).classList.toggle('active', m === mode);
+    });
+  }
+
+  function pickCoinType() {
+    const weights = currentPair.weights;
+    const r = Math.random();
+    if (r < weights[10]) return 10;
+    if (r < weights[10] + weights[5]) return 5;
+    return 1;
+  }
+
+  function nextQuestion() {
+    isWinning = false;
+    isPaused = false;
+    hintLevel = 0;
+    hintActiveType = null;
+    pauseBtn.innerText = "⏸ 暫停";
+    pauseBtn.style.background = "#f59e0b";
+    hideCompletionScreen();
+
+    // 決定這一題要用哪一組貨幣：第一關固定，第二、三關每題隨機抽一組
+    currentPair = currentLevel.fixedPair !== null
+      ? COIN_PAIRS[currentLevel.fixedPair]
+      : COIN_PAIRS[Math.floor(Math.random() * COIN_PAIRS.length)];
+    document.getElementById('pairLabel').innerText = `本題貨幣：${currentPair.label}`;
+
+    const [lo, hi] = currentLevel.targetRange;
+    const step = currentPair.step;
+    // 目標金額要落在間隔的倍數上，確保只用這一題的兩種硬幣就一定湊得出來
+    const stepsCount = Math.floor((hi - lo) / step) + 1;
+    currentTarget = lo + step * Math.floor(Math.random() * stepsCount);
+    displayTarget.innerText = currentTarget;
+    count10 = 0; count5 = 0; count1 = 0;
+    warningMsg.innerText = "";
+    renderTray();
+
+    if (dropInterval) clearInterval(dropInterval);
+    activeCoins.forEach(c => c.remove());
+    activeCoins = [];
+
+    dropInterval = setInterval(() => {
+      if (!isWinning && !isPaused) spawnFallingCoin();
+    }, SPEED_SETTINGS[speedMode].spawnInterval);
+
+    enqueueSpeech(`要付 ${currentTarget} 元，這一題有 ${currentPair.label}`, 0.9);
+  }
+
+  function togglePause() {
+    if (isWinning || !currentLevel) return;
+    isPaused = !isPaused;
+
+    if (isPaused) {
+      pauseBtn.innerText = "▶ 繼續";
+      pauseBtn.style.background = "#16a34a";
+      warningMsg.innerText = "⏸️ 遊戲已暫停，可以慢慢思考喔！";
+      activeCoins.forEach(c => { c.style.animationPlayState = 'paused'; });
+      clearSpeechQueue();
+    } else {
+      pauseBtn.innerText = "⏸ 暫停";
+      pauseBtn.style.background = "#f59e0b";
+      warningMsg.innerText = "";
+      activeCoins.forEach(c => { c.style.animationPlayState = 'running'; });
+    }
+  }
+
+  function useHint() {
+    if (isPaused || isWinning || !currentLevel) return;
+    hintLevel++;
+    const totalAmount = (count10 * 10) + (count5 * 5) + count1;
+    const remaining = currentTarget - totalAmount;
+
+    if (hintLevel === 1) {
+      const text = `🔍 提示：現在還差 ${remaining} 元，找找看畫面上哪個硬幣加起來剛剛好！`;
+      warningMsg.innerText = text;
+      enqueueSpeech(`還差 ${remaining} 元喔`, 1.0);
+    } else {
+      const activeTypes = [10, 5, 1].filter(t => currentPair.weights[t] > 0);
+      let suggestType = activeTypes.find(t => remaining >= t) || activeTypes[activeTypes.length - 1];
+      const text = `💡 可以先收集一枚 ${suggestType} 元的硬幣！`;
+      warningMsg.innerText = text;
+      enqueueSpeech(`可以先收集 ${suggestType} 元的硬幣`, 1.0);
+      hintActiveType = suggestType;
+      activeCoins.forEach(c => { if (c.dataset.val === String(suggestType)) c.classList.add('hint-glow'); });
+    }
+  }
+
+  function spawnFallingCoin() {
+    if (isPaused) return;
+
+    let coinType = pickCoinType();
+
+    const coinEl = document.createElement('div');
+    coinEl.className = `coin coin-${coinType}`;
+    coinEl.dataset.val = String(coinType);
+    coinEl.innerHTML = `<span class="coin-num">${coinType}</span>`;
+    if (hintActiveType !== null && coinType === hintActiveType) coinEl.classList.add('hint-glow');
+
+    const randomX = Math.random() * (dropField.clientWidth - 66);
+    coinEl.style.left = randomX + 'px';
+    coinEl.style.top = '-70px';
+
+    const [minDur, maxDur] = SPEED_SETTINGS[speedMode].fallDuration;
+    const totalDuration = (minDur + Math.random() * (maxDur - minDur)) * 1000;
+    const startTime = performance.now();
+    const dropFieldHeight = dropField.clientHeight;
+    const endTop = dropFieldHeight - 40; // 用容器實際高度計算終點，不寫死像素值
+
+    let rafId = null;
+    function animateFall(now) {
+      if (isPaused) { rafId = requestAnimationFrame(animateFall); return; }
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / totalDuration);
+      const top = -70 + (endTop + 70) * progress;
+      coinEl.style.top = top + 'px';
+      if (progress < 1 && coinEl.isConnected) {
+        rafId = requestAnimationFrame(animateFall);
+      } else if (coinEl.isConnected) {
+        coinEl.remove();
+        activeCoins = activeCoins.filter(item => item !== coinEl);
+      }
+    }
+    rafId = requestAnimationFrame(animateFall);
+
+    let isHandled = false;
+    const handleCoinTouch = (e) => {
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+      if (isWinning || isPaused || isHandled) return;
+      isHandled = true;
+
+      let totalAmount = (count10 * 10) + (count5 * 5) + count1;
+
+      if (totalAmount + coinType > currentTarget) {
+        playRejectSound();
+        coinEl.classList.add('rejecting');
+        warningMsg.innerText = `❌ 這枚 ${coinType} 元收下去會超過喔，再試試其他的！`;
+        enqueueSpeech("這枚會超過喔，再試試其他的", 1.0);
+        isHandled = false; // 這枚幣被拒絕、留在畫面上讓它繼續飄落，允許再次點擊或點別的
+        setTimeout(() => coinEl.classList.remove('rejecting'), 350);
+        return;
+      }
+
+      warningMsg.innerText = "";
+      lastActionWasSpecial = false;
+      if (coinType === 10) {
+        count10++;
+      } else if (coinType === 5) {
+        count5++;
+        if (count5 >= 2) {
+          count5 -= 2; count10++;
+          lastActionWasSpecial = true;
+          enqueueSpeech("兩個五塊錢換成十元囉", 1.0);
+        }
+      } else {
+        count1++;
+        if (count1 >= 10) {
+          count1 -= 10; count10++;
+          lastActionWasSpecial = true;
+          enqueueSpeech("十個一塊錢換成十元囉", 1.0);
+        }
+      }
+      playDropSound();
+      renderTray();
+
+      if (rafId) cancelAnimationFrame(rafId);
+      coinEl.remove();
+      activeCoins = activeCoins.filter(item => item !== coinEl);
+    };
+
+    coinEl.addEventListener('pointerdown', handleCoinTouch);
+
+    dropField.appendChild(coinEl);
+    activeCoins.push(coinEl);
+  }
+
+  function removeCoin(val) {
+    if (isWinning || isPaused) return;
+    if (val === 10 && count10 > 0) count10--;
+    else if (val === 5 && count5 > 0) count5--;
+    else if (val === 1 && count1 > 0) count1--;
+    warningMsg.innerText = "";
+    lastActionWasSpecial = false;
+    playPickupSound();
+    renderTray();
+  }
+
+  function renderTray() {
+    let totalAmount = (count10 * 10) + (count5 * 5) + count1;
+    trayCoins.innerHTML = '';
+    currentAmountSpan.innerText = totalAmount;
+
+    const makeTrayCoin = (val) => {
+      let c = document.createElement('div');
+      c.className = `coin coin-${val}`;
+      c.innerHTML = `<span class="coin-num">${val}</span>`;
+      const removeAction = (e) => { if (e) e.preventDefault(); removeCoin(val); };
+      c.addEventListener('pointerdown', removeAction);
+      return c;
+    };
+    for (let i = 0; i < count10; i++) trayCoins.appendChild(makeTrayCoin(10));
+    for (let i = 0; i < count5; i++) trayCoins.appendChild(makeTrayCoin(5));
+    for (let i = 0; i < count1; i++) trayCoins.appendChild(makeTrayCoin(1));
+
+    if (totalAmount === currentTarget && currentTarget > 0) {
+      isWinning = true;
+      if (dropInterval) clearInterval(dropInterval);
+      activeCoins.forEach(c => c.remove());
+      activeCoins = [];
+
+      successCount++;
+      successCountSpan.innerText = successCount;
+
+      playCheerSound();
+      clearSpeechQueue();
+      enqueueSpeech(`${totalAmount} 元，答對了，恭喜過關！`, 1.0);
+
+      confetti({
+        particleCount: 150, spread: 80, origin: { y: 0.6 },
+        colors: ['#FFD700', '#ff0000', '#00ff00', '#0000ff']
+      });
+
+      showCompletionScreen(totalAmount);
+      setTimeout(nextQuestion, 3200);
+    } else if (totalAmount > 0 && !lastActionWasSpecial) {
+      enqueueSpeech(`${totalAmount} 元`, 1.3);
+    }
+  }
+
+  function showCompletionScreen(amount) {
+    document.getElementById('completeEquation').innerText = `${amount} 元`;
+    document.getElementById('completeOverlay').style.display = 'flex';
+  }
+  function hideCompletionScreen() {
+    document.getElementById('completeOverlay').style.display = 'none';
+  }
+
+  renderLevelList();
+</script>
+</body>
+</html>
