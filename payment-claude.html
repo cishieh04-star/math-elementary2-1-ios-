@@ -53,6 +53,8 @@
     display: flex; flex-direction: column; gap: 2px;
   }
   .level-btn:active { transform: scale(0.98); background: #f0f9ff; }
+  .start-btn { padding: 12px 30px; font-size: 22px; font-weight: bold; background-color: #0ea5e9; color: white; border-radius: 16px; cursor: pointer; box-shadow: 0px 4px 10px rgba(0,0,0,0.2); border: none; width: 100%; max-width: 260px; }
+  .start-btn:active { transform: scale(0.95); background-color: #0284c7; }
   .level-btn .lv-name { font-size: 14px; font-weight: bold; color: #0284c7; }
   .level-btn .lv-desc { font-size: 11px; color: #334155; }
 
@@ -222,11 +224,11 @@
           <li><strong>步驟三(集滿過關)：</strong>收集到剛好的金額即可自動通關!系統會自動幫您把零錢換成十元硬幣。</li>
           <li><strong>步驟四(超額處理)：</strong>如果點到會讓金額超過的硬幣,那一枚會被退回,已經收集的錢不會被清空。</li>
           <li><strong>卡住了嗎：</strong>按「💡提示」會給你線索!</li>
+          <li>題目會先從簡單的 1 元、5 元開始，慢慢加深難度喔！</li>
         </ul>
       </div>
 
-      <div class="level-pick-title">請選擇關卡：</div>
-      <div id="levelList" style="width:100%;"></div>
+      <button class="start-btn" id="startBtn" onclick="startGame()">🎮 開始遊戲</button>
     </div>
   </div>
 
@@ -241,7 +243,7 @@
         <div class="score-display">已完成: <span id="successCount">0</span> 關</div>
         <button class="control-btn hint-btn" onclick="useHint()">💡提示</button>
         <button class="control-btn pause-btn" id="pauseBtn" onclick="togglePause()">⏸ 暫停</button>
-        <button class="control-btn switch-btn" onclick="showLevelSelect()">🔄換關卡</button>
+        <button class="control-btn switch-btn" onclick="restartGame()">🔄重新開始</button>
       </div>
     </div>
     <div id="pairLabel" style="width:100%; text-align:center; font-size:13px; font-weight:bold; color:#7c3aed; background:#f5f3ff; padding:3px 0; flex-shrink:0;">本題貨幣：1元 + 5元</div>
@@ -273,11 +275,21 @@
     { label: '1元 + 10元', weights: { 10: 0.5, 5: 0, 1: 0.5 }, step: 1 }
   ];
 
-  const LEVELS = [
-    { id: 1, name: '第一關：1元 + 5元', desc: '只出現 1 元和 5 元，目標金額 5~20 元。', targetRange: [5, 20], fixedPair: 0 },
-    { id: 2, name: '第二關：兩種貨幣隨機', desc: '每一題隨機出現三種貨幣中的兩種，目標金額 10~100 元。', targetRange: [10, 100], fixedPair: null },
-    { id: 3, name: '第三關：挑戰關卡', desc: '每一題隨機兩種貨幣，目標金額 10~200 元，數字更大！', targetRange: [10, 200], fixedPair: null }
+  let questionCount = 0; // 追蹤目前是第幾題，用來決定難度階段
+
+  // 難度隨題數漸進提升：一開始只用1元和5元、金額較小，之後才加入10元、
+  // 隨機貨幣組合，最後金額範圍擴大到最大挑戰，每個階段安排5題。
+  const DIFFICULTY_TIERS = [
+    { targetRange: [5, 20],   fixedPair: 0 },
+    { targetRange: [10, 60],  fixedPair: null },
+    { targetRange: [10, 100], fixedPair: null },
+    { targetRange: [10, 200], fixedPair: null }
   ];
+  const QUESTIONS_PER_TIER = 5;
+  function getDifficultyForQuestion() {
+    const tierIndex = Math.min(Math.floor(questionCount / QUESTIONS_PER_TIER), DIFFICULTY_TIERS.length - 1);
+    return DIFFICULTY_TIERS[tierIndex];
+  }
 
   let currentPair = COIN_PAIRS[0]; // 這一題實際使用的貨幣組合
 
@@ -287,7 +299,7 @@
     fast:   { fallDuration: [4.5, 6.5], spawnInterval: 1500 }
   };
 
-  let currentLevel = null;
+  let gameStarted = false;
   let count10 = 0, count5 = 0, count1 = 0;
   let currentTarget = 0;
   let successCount = 0;
@@ -377,20 +389,10 @@
     isSpeaking = false;
   }
 
-  function renderLevelList() {
-    const container = document.getElementById('levelList');
-    container.innerHTML = '';
-    LEVELS.forEach(lv => {
-      const btn = document.createElement('div');
-      btn.className = 'level-btn';
-      btn.innerHTML = `<span class="lv-name">${lv.name}</span><span class="lv-desc">${lv.desc}</span>`;
-      btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startGame(lv.id); });
-      container.appendChild(btn);
-    });
-  }
-
-  function showLevelSelect() {
+  function restartGame() {
     isPaused = false;
+    gameStarted = false;
+    questionCount = 0;
     if (dropInterval) clearInterval(dropInterval);
     activeCoins.forEach(c => c.remove());
     activeCoins = [];
@@ -399,10 +401,10 @@
     startScreen.style.display = 'flex';
   }
 
-  function startGame(levelId) {
+  function startGame() {
     if (startScreen.style.display === 'none') return;
-    currentLevel = LEVELS.find(l => l.id === levelId);
-    document.getElementById('levelLabel').innerText = currentLevel.name;
+    gameStarted = true;
+    questionCount = 0;
 
     initAudio();
     let unlockSpeech = new SpeechSynthesisUtterance('');
@@ -431,6 +433,7 @@
   }
 
   function nextQuestion() {
+    if (!gameStarted) return;
     isWinning = false;
     isPaused = false;
     hintLevel = 0;
@@ -439,13 +442,17 @@
     pauseBtn.style.background = "#f59e0b";
     hideCompletionScreen();
 
-    // 決定這一題要用哪一組貨幣：第一關固定，第二、三關每題隨機抽一組
-    currentPair = currentLevel.fixedPair !== null
-      ? COIN_PAIRS[currentLevel.fixedPair]
+    const tier = getDifficultyForQuestion();
+    questionCount++;
+    document.getElementById('levelLabel').innerText = `第 ${questionCount} 題`;
+
+    // 決定這一題要用哪一組貨幣：固定組合的階段用指定組合，其餘每題隨機抽一組
+    currentPair = tier.fixedPair !== null
+      ? COIN_PAIRS[tier.fixedPair]
       : COIN_PAIRS[Math.floor(Math.random() * COIN_PAIRS.length)];
     document.getElementById('pairLabel').innerText = `本題貨幣：${currentPair.label}`;
 
-    const [lo, hi] = currentLevel.targetRange;
+    const [lo, hi] = tier.targetRange;
     const step = currentPair.step;
     // 目標金額要落在間隔的倍數上，確保只用這一題的兩種硬幣就一定湊得出來
     const stepsCount = Math.floor((hi - lo) / step) + 1;
@@ -467,7 +474,7 @@
   }
 
   function togglePause() {
-    if (isWinning || !currentLevel) return;
+    if (isWinning || !gameStarted) return;
     isPaused = !isPaused;
 
     if (isPaused) {
@@ -485,7 +492,7 @@
   }
 
   function useHint() {
-    if (isPaused || isWinning || !currentLevel) return;
+    if (isPaused || isWinning || !gameStarted) return;
     hintLevel++;
     const totalAmount = (count10 * 10) + (count5 * 5) + count1;
     const remaining = currentTarget - totalAmount;
@@ -655,7 +662,6 @@
     document.getElementById('completeOverlay').style.display = 'none';
   }
 
-  renderLevelList();
 </script>
 </body>
 </html>
