@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>100以內的數字接力遊戲</title>
+    <title>數學冒險：1到99火車過山洞篇</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -53,6 +53,8 @@
             display: flex; flex-direction: column; gap: 2px;
         }
         .level-btn:active { transform: scale(0.98); background: #f0f9ff; }
+        .start-btn { padding: 12px 30px; font-size: 22px; font-weight: bold; background-color: #0ea5e9; color: white; border-radius: 16px; cursor: pointer; box-shadow: 0px 4px 10px rgba(0,0,0,0.2); border: none; width: 100%; max-width: 260px; }
+        .start-btn:active { transform: scale(0.95); background-color: #0284c7; }
         .level-btn .lv-name { font-size: 14px; font-weight: bold; color: #0284c7; }
         .level-btn .lv-desc { font-size: 11px; color: #334155; }
 
@@ -178,7 +180,7 @@
 
 <div class="main-wrapper">
     <div id="home-screen">
-        <h1>🚂 100以內的數字接力遊戲</h1>
+        <h1>🚂 1到99：火車過山洞</h1>
         <p class="subtitle">🌟 語音互動 × 數字序列推理 × 氣球闖關！</p>
 
         <div class="intro-card">
@@ -187,14 +189,11 @@
                 <li>觀察上方火車車廂，找出被問號擋住的正確數字。</li>
                 <li>點擊畫面上飄上來的氣球，戳破正確答案就能過關！</li>
                 <li>卡住了嗎？按「💡提示」會給你線索！</li>
+                <li>題目會先從簡單的間隔 1 開始，慢慢加深到間隔 10 喔！</li>
             </ul>
         </div>
 
-        <div class="level-pick-title">① 請選擇間隔：</div>
-        <div class="step-pick-row" id="stepPickRow"></div>
-
-        <div class="level-pick-title">② 請選擇關卡：</div>
-        <div id="levelList" style="width:100%;"></div>
+        <button class="start-btn" id="startBtn" onclick="startGame()">🎮 開始遊戲</button>
     </div>
 
     <div id="game-ui">
@@ -209,7 +208,7 @@
             <div class="status-right">
                 <button class="control-btn hint-btn-el" onclick="useHint()">💡提示</button>
                 <button class="control-btn" id="pause-btn" onclick="togglePause()">暫停</button>
-                <button class="control-btn switch-btn-el" onclick="showLevelSelect()">🔄換關卡</button>
+                <button class="control-btn switch-btn-el" onclick="restartGame()">🔄重新開始</button>
             </div>
         </div>
 
@@ -236,17 +235,26 @@
 
 <script>
     const MIN_NUM = 1, MAX_NUM = 99;
-    const STEP_OPTIONS = [1, 2, 5, 10];
-    let STEP = 1;
+    let currentStep = 1;
+    let questionCount = 0; // 追蹤目前是第幾題，用來決定難度階段
 
-    const LEVELS = [
-        { id: 1, name: '第一關：遞增練習', desc: '車廂數字一路變大，空格都在最後一節。', forceDir: 'asc', blankMode: 'last' },
-        { id: 2, name: '第二關：遞減練習', desc: '車廂數字一路變小，空格都在最後一節。', forceDir: 'desc', blankMode: 'last' },
-        { id: 3, name: '第三關：判斷方向', desc: '可能遞增也可能遞減，空格還是在最後一節。', forceDir: null, blankMode: 'last' },
-        { id: 4, name: '第四關：綜合挑戰', desc: '方向不固定，空格也可能出現在中間或最前面！', forceDir: null, blankMode: 'any' }
-    ];
+    // 難度同時考慮「間隔大小」跟「方向與空格位置」，由簡入難依序組合：
+    // 先間隔1、再2、再5、最後間隔10；每個間隔內也是先固定遞增（最簡單）、
+    // 再固定遞減、再方向不定，最後空格任意位置最難，每個階段安排4題。
+    const DIFFICULTY_TIERS = [];
+    for (const step of [1, 2, 5, 10]) {
+        DIFFICULTY_TIERS.push({ step, forceDir: 'asc',  blankMode: 'last' });
+        DIFFICULTY_TIERS.push({ step, forceDir: 'desc', blankMode: 'last' });
+        DIFFICULTY_TIERS.push({ step, forceDir: null,   blankMode: 'last' });
+        DIFFICULTY_TIERS.push({ step, forceDir: null,   blankMode: 'any'  });
+    }
+    const QUESTIONS_PER_TIER = 4;
+    function getDifficultyForQuestion() {
+        const tierIndex = Math.min(Math.floor(questionCount / QUESTIONS_PER_TIER), DIFFICULTY_TIERS.length - 1);
+        return DIFFICULTY_TIERS[tierIndex];
+    }
 
-    let currentLevel = null;
+    let gameStarted = false;
     let currentAns, score = 0;
     let gameInterval = null;
     let nextQuestionTimeout = null;
@@ -273,21 +281,9 @@
         if (isPaused || !window.speechSynthesis) return;
         try {
             window.speechSynthesis.cancel();
-            // 取消跟念新語音中間留一點緩衝，減少部分裝置銜接太快產生怪音的機會
-            setTimeout(() => {
-                if (isPaused) return;
-                try {
-                    const msg = new SpeechSynthesisUtterance(text);
-                    msg.lang = 'zh-TW';
-                    msg.rate = 0.9;
-                    msg.pitch = 1.1; // 音調微調高一點，聽起來更柔和自然
-                    const voices = window.speechSynthesis.getVoices();
-                    const preferred = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('zh') &&
-                        /female|女|meijia|mei-jia|yating|tingting|xiaoxiao/i.test(v.name));
-                    if (preferred) msg.voice = preferred;
-                    window.speechSynthesis.speak(msg);
-                } catch (e) {}
-            }, 70);
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'zh-TW';
+            window.speechSynthesis.speak(msg);
         } catch (e) {}
     }
     if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = () => {};
@@ -346,33 +342,11 @@
         osc.start(now); osc.stop(now + 0.14);
     }
 
-    function renderStepPicker() {
-        const container = document.getElementById('stepPickRow');
-        container.innerHTML = '';
-        STEP_OPTIONS.forEach(s => {
-            const btn = document.createElement('div');
-            btn.className = 'step-btn' + (s === STEP ? ' active' : '');
-            btn.innerHTML = `<span class="step-num">間隔${s}</span><span class="step-sub">每次±${s}</span>`;
-            btn.addEventListener('pointerdown', (e) => { e.preventDefault(); STEP = s; renderStepPicker(); });
-            container.appendChild(btn);
-        });
-    }
-
-    function renderLevelList() {
-        const container = document.getElementById('levelList');
-        container.innerHTML = '';
-        LEVELS.forEach(lv => {
-            const btn = document.createElement('div');
-            btn.className = 'level-btn';
-            btn.innerHTML = `<span class="lv-name">${lv.name}</span><span class="lv-desc">${lv.desc}</span>`;
-            btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startGame(lv.id); });
-            container.appendChild(btn);
-        });
-    }
-
-    function showLevelSelect() {
+    function restartGame() {
         isPaused = false;
         pendingNextQuestion = false;
+        gameStarted = false;
+        questionCount = 0;
         if (gameInterval) clearInterval(gameInterval);
         if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
         if (timerInterval) clearInterval(timerInterval);
@@ -384,10 +358,10 @@
         document.getElementById('home-screen').style.display = 'flex';
     }
 
-    function startGame(levelId) {
+    function startGame() {
         if (document.getElementById('home-screen').style.display === 'none') return;
-        currentLevel = LEVELS.find(l => l.id === levelId);
-        document.getElementById('levelLabel').innerText = `間隔${STEP}．${currentLevel.name}`;
+        gameStarted = true;
+        questionCount = 0;
 
         if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
         if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -421,11 +395,11 @@
         ['slow', 'normal', 'fast'].forEach(m => {
             document.getElementById('speed' + m.charAt(0).toUpperCase() + m.slice(1)).classList.toggle('active', m === mode);
         });
-        if (!isPaused && !isAnswered && currentLevel) startSpawning();
+        if (!isPaused && !isAnswered && gameStarted) startSpawning();
     }
 
     function togglePause() {
-        if (!currentLevel) return;
+        if (!gameStarted) return;
         isPaused = !isPaused;
         const pauseBtn = document.getElementById('pause-btn');
 
@@ -454,12 +428,18 @@
     }
 
     function loadQuestion() {
-        if (!currentLevel) return;
+        if (!gameStarted) return;
         isAnswered = false;
         hintLevel = 0;
         hintActiveValue = null;
         hideCompletionScreen();
         if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+
+        const tier = getDifficultyForQuestion();
+        questionCount++;
+        currentStep = tier.step;
+        const STEP = tier.step;
+        document.getElementById('levelLabel').innerText = `間隔${STEP}`;
 
         if (!isPaused) document.getElementById('feedback').innerText = "火車車廂少了一個數字，找找看！";
 
@@ -467,8 +447,8 @@
         activeOptions = [];
         if (gameInterval) clearInterval(gameInterval);
 
-        let isAscending = currentLevel.forceDir === 'asc' ? true
-            : currentLevel.forceDir === 'desc' ? false
+        let isAscending = tier.forceDir === 'asc' ? true
+            : tier.forceDir === 'desc' ? false
             : Math.random() < 0.5;
 
         let baseMin, baseMax;
@@ -481,7 +461,7 @@
         trainSequence = [];
         for (let i = 0; i < 4; i++) trainSequence.push(baseNum + i * actualStep);
 
-        const blankIndex = currentLevel.blankMode === 'last' ? 3 : Math.floor(Math.random() * 4);
+        const blankIndex = tier.blankMode === 'last' ? 3 : Math.floor(Math.random() * 4);
         currentAns = trainSequence[blankIndex];
 
         renderTrain(trainSequence, blankIndex);
@@ -506,7 +486,7 @@
     }
 
     function startSpawning() {
-        if (isPaused || isAnswered || !currentLevel) return;
+        if (isPaused || isAnswered || !gameStarted) return;
         if (gameInterval) clearInterval(gameInterval);
         let index = 0;
         gameInterval = setInterval(() => {
@@ -546,7 +526,7 @@
     }
 
     function useHint() {
-        if (isPaused || isAnswered || !currentLevel) return;
+        if (isPaused || isAnswered || !gameStarted) return;
         hintLevel++;
         let blankIndex = trainSequence.indexOf(currentAns);
         let isAscending = trainSequence.length > 1 && trainSequence[1] > trainSequence[0];
@@ -555,10 +535,10 @@
             let neighborVal, direction;
             if (blankIndex > 0) {
                 neighborVal = trainSequence[blankIndex - 1];
-                direction = isAscending ? `多 ${STEP}` : `少 ${STEP}`;
+                direction = isAscending ? `多 ${currentStep}` : `少 ${currentStep}`;
             } else {
                 neighborVal = trainSequence[blankIndex + 1];
-                direction = isAscending ? `少 ${STEP}` : `多 ${STEP}`;
+                direction = isAscending ? `少 ${currentStep}` : `多 ${currentStep}`;
             }
             const text = `🔍 提示：旁邊車廂是 ${neighborVal}，這一格要比它${direction}喔！`;
             document.getElementById('feedback').innerText = text;
@@ -661,8 +641,6 @@
         activeOptions.push(el);
     }
 
-    renderStepPicker();
-    renderLevelList();
 </script>
 </body>
 </html>
