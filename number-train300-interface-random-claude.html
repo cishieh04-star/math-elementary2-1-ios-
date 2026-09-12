@@ -52,6 +52,8 @@
             border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; cursor: pointer;
             display: flex; flex-direction: column; gap: 2px;
         }
+        .start-btn { padding: 12px 30px; font-size: 22px; font-weight: bold; background-color: #0ea5e9; color: white; border-radius: 16px; cursor: pointer; box-shadow: 0px 4px 10px rgba(0,0,0,0.2); border: none; width: 100%; max-width: 260px; }
+        .start-btn:active { transform: scale(0.95); background-color: #0284c7; }
         .level-btn:active { transform: scale(0.98); background: #f0f9ff; }
         .level-btn .lv-name { font-size: 14px; font-weight: bold; color: #0284c7; }
         .level-btn .lv-desc { font-size: 11px; color: #334155; }
@@ -117,28 +119,97 @@
             border: 3px solid #cbd5e1; border-radius: 14px;
             overflow: hidden; box-sizing: border-box; margin-top: 4px; touch-action: manipulation;
         }
-        /* 氣球：從下面慢慢往上飄，左右輕輕搖擺，答對時會開心戳破 */
+        /* 掉落物件：基礎樣式共用，實際外觀依主題（氣球／籃球／機器人／寶石）套用不同造型 */
         .falling-option {
             position: absolute; width: 66px; height: 78px;
-            border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 20px; font-weight: bold; color: #ffffff; cursor: pointer;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.55), 0 0 3px rgba(0,0,0,0.4);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2),
-                        inset -8px -8px 14px rgba(0,0,0,0.15),
-                        inset 8px 8px 14px rgba(255,255,255,0.45);
+            cursor: pointer;
             animation: floatUp linear forwards;
             z-index: 999; pointer-events: auto;
         }
-        .falling-option::before {
+        .falling-option .obj-num {
+            position: relative; z-index: 3; font-weight: bold;
+        }
+        /* 主題一：氣球 */
+        .falling-option.theme-balloon {
+            border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2),
+                        inset -8px -8px 14px rgba(0,0,0,0.15),
+                        inset 8px 8px 14px rgba(255,255,255,0.45);
+        }
+        .falling-option.theme-balloon .obj-num { font-size: 20px; color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.55), 0 0 3px rgba(0,0,0,0.4); }
+        .falling-option.theme-balloon::before {
             content: ''; position: absolute; bottom: -6px; left: 50%;
             width: 0; height: 0; transform: translateX(-50%);
             border-left: 5px solid transparent; border-right: 5px solid transparent;
             border-top: 7px solid var(--balloon-dark, #b91c1c);
         }
-        .falling-option::after {
+        .falling-option.theme-balloon::after {
             content: ''; position: absolute; bottom: -26px; left: 50%;
             width: 2px; height: 24px; background: #94a3b8; transform: translateX(-50%);
+        }
+        /* 主題二：籃球 */
+        .falling-option.theme-basketball {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: radial-gradient(circle at 32% 28%, #ffc27a, #f0810a 50%, #b34f00 85%, #8a3d00 100%);
+            border: 2px solid #6b3600; overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.35), inset -6px -6px 10px rgba(0,0,0,0.25), inset 4px 4px 8px rgba(255,255,255,0.3);
+        }
+        .falling-option.theme-basketball::before {
+            content: ''; position: absolute; top: 0; left: 50%; width: 2px; height: 100%;
+            background: rgba(50,25,0,0.6); transform: translateX(-50%);
+        }
+        .falling-option.theme-basketball::after {
+            content: ''; position: absolute; left: 0; top: 50%; width: 100%; height: 2px;
+            background: rgba(50,25,0,0.6); transform: translateY(-50%);
+        }
+        .falling-option.theme-basketball .obj-badge {
+            position: relative; z-index: 2; width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(255,255,255,0.95); display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+        }
+        .falling-option.theme-basketball .obj-num { font-size: 15px; color: #8a3d00; }
+        /* 主題三：機器人 */
+        .falling-option.theme-robot {
+            width: 62px; height: 62px; border-radius: 14px;
+            background: linear-gradient(160deg, #e2e8f0, #94a3b8);
+            border: 2px solid #475569;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .falling-option.theme-robot .robot-antenna {
+            position: absolute; top: -9px; left: 50%; width: 3px; height: 9px;
+            background: #64748b; transform: translateX(-50%);
+        }
+        .falling-option.theme-robot .robot-antenna::before {
+            content: ''; position: absolute; top: -6px; left: 50%; width: 7px; height: 7px;
+            background: #ef4444; border-radius: 50%; transform: translateX(-50%);
+            box-shadow: 0 0 4px #ef4444;
+        }
+        .falling-option.theme-robot .robot-eye {
+            position: absolute; top: 14px; width: 9px; height: 9px; border-radius: 50%;
+            background: var(--robot-eye, #38bdf8); box-shadow: 0 0 5px var(--robot-eye, #38bdf8);
+        }
+        .falling-option.theme-robot .robot-eye.left { left: 11px; }
+        .falling-option.theme-robot .robot-eye.right { right: 11px; }
+        .falling-option.theme-robot .obj-num {
+            position: absolute; bottom: 8px; left: 0; width: 100%; text-align: center;
+            font-size: 16px; color: #1e293b;
+        }
+        /* 主題四：寶石 */
+        .falling-option.theme-gem {
+            width: 62px; height: 62px;
+            clip-path: polygon(50% 0%, 100% 35%, 82% 100%, 18% 100%, 0% 35%);
+            background: linear-gradient(160deg, #ffffff 0%, var(--gem-color, #f97316) 35%, var(--gem-dark, #9a3412) 100%);
+            filter: drop-shadow(0 3px 5px rgba(0,0,0,0.3));
+            animation: floatUp linear forwards, gemSparkle 1.6s ease-in-out infinite;
+        }
+        @keyframes gemSparkle {
+            0%, 100% { filter: drop-shadow(0 3px 5px rgba(0,0,0,0.3)) brightness(1); }
+            50% { filter: drop-shadow(0 3px 8px rgba(0,0,0,0.35)) brightness(1.25); }
+        }
+        .falling-option.theme-gem .obj-num {
+            position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 16px; color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.6);
         }
         .falling-option:active { transform: scale(0.92); }
         .falling-option.hint-glow {
@@ -186,13 +257,13 @@
             <ul>
                 <li>每一題的間隔都不一樣，要自己先看出規律是多少！</li>
                 <li>觀察上方火車車廂，找出被問號擋住的正確數字。</li>
-                <li>點擊畫面上飄上來的氣球，戳破正確答案就能過關！</li>
+                <li>畫面下方會出現不同造型的物件（氣球、籃球、機器人、寶石），戳破正確答案就能過關！</li>
                 <li>卡住了嗎？按「💡提示」會給你線索！</li>
+                <li>題目會先從簡單的開始，慢慢加深難度喔！</li>
             </ul>
         </div>
 
-        <div class="level-pick-title">請選擇關卡：</div>
-        <div id="levelList" style="width:100%;"></div>
+        <button class="start-btn" id="startBtn" onclick="startGame()">🎮 開始遊戲</button>
 
         <div id="voiceDebugBox" style="width:100%; margin-top:10px; padding:8px 10px; background:#fef9c3; border:2px dashed #eab308; border-radius:10px; font-size:11px; color:#78350f; text-align:left; display:none;">
             <b>🔧 偵測到的中文語音（除錯用）：</b>
@@ -239,17 +310,39 @@
 
 <script>
     const MIN_NUM = 1, MAX_NUM = 300;
-    const STEP_POOL = [1, 2, 5, 10, 20, 50]; // 每一題都會隨機抽一個間隔，不是固定的
     let STEP = 1; // 目前這一題實際使用的間隔（每題都會重新抽）
+    let questionCount = 0; // 追蹤目前是第幾題，用來決定難度階段
 
-    const LEVELS = [
-        { id: 1, name: '第一關：遞增練習', desc: '車廂數字一路變大，空格都在最後一節。', forceDir: 'asc', blankMode: 'last' },
-        { id: 2, name: '第二關：遞減練習', desc: '車廂數字一路變小，空格都在最後一節。', forceDir: 'desc', blankMode: 'last' },
-        { id: 3, name: '第三關：判斷方向', desc: '可能遞增也可能遞減，空格還是在最後一節。', forceDir: null, blankMode: 'last' },
-        { id: 4, name: '第四關：綜合挑戰', desc: '方向不固定，空格也可能出現在中間或最前面！', forceDir: null, blankMode: 'any' }
+    // 難度隨題數漸進提升：間隔的抽選範圍逐漸擴大，同時方向與空格位置也逐步加深，
+    // 前面刻意安排較多簡單題，不會太快跳到最難的組合。
+    const DIFFICULTY_TIERS = [
+        { stepPool: [1, 2],               forceDir: 'asc',  blankMode: 'last' },
+        { stepPool: [1, 2, 5],            forceDir: 'desc', blankMode: 'last' },
+        { stepPool: [1, 2, 5, 10],        forceDir: null,   blankMode: 'last' },
+        { stepPool: [1, 2, 5, 10, 20, 50], forceDir: null,  blankMode: 'any'  }
     ];
+    const QUESTIONS_PER_TIER = 6;
+    function getDifficultyForQuestion() {
+        const tierIndex = Math.min(Math.floor(questionCount / QUESTIONS_PER_TIER), DIFFICULTY_TIERS.length - 1);
+        return DIFFICULTY_TIERS[tierIndex];
+    }
 
-    let currentLevel = null;
+    // 車廂色票：每一題隨機挑一種顏色，避免每次玩都看到一樣的畫面。
+    const CAR_COLOR_POOL = [
+        { bg: '#3b82f6', border: '#1e40af' },
+        { bg: '#16a34a', border: '#14532d' },
+        { bg: '#db2777', border: '#831843' },
+        { bg: '#7c3aed', border: '#4c1d95' },
+        { bg: '#ea580c', border: '#7c2d12' },
+        { bg: '#0891b2', border: '#164e63' }
+    ];
+    let currentCarColor = CAR_COLOR_POOL[0];
+
+    // 掉落物件主題：氣球、籃球、機器人、寶石，每一題隨機挑一種，增加變化感。
+    const OBJECT_THEMES = ['balloon', 'basketball', 'robot', 'gem'];
+    let currentObjectTheme = 'balloon';
+
+    let gameStarted = false;
     let currentAns, score = 0;
     let gameInterval = null;
     let nextQuestionTimeout = null;
@@ -274,38 +367,13 @@
 
     // 挑選比較有把握是女聲的語音；如果裝置上完全沒有明確標示女聲的中文語音，
     // 就至少避開明確標示男聲的，並且用提高音調的方式讓聲音聽起來更柔和。
-    function pickVoice() {
-        if (!window.speechSynthesis) return { voice: null, confidentFemale: false };
-        const voices = window.speechSynthesis.getVoices();
-        const zhVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('zh'));
-        if (zhVoices.length === 0) return { voice: null, confidentFemale: false };
-        const femalePattern = /female|女|meijia|mei-jia|yating|ya-ting|tingting|xiaoxiao|xiaoyi|hanhan|sinji|sin-ji|zhiyu|xiaoshuang|yaoyao/i;
-        const picked = zhVoices.find(v => femalePattern.test(v.name));
-        // 找不到明確標示女聲的語音時，不要自己隨便挑一個裝置清單裡的語音頂替——
-        // 那樣反而可能挑到比系統預設更差的。直接不指定，讓系統自己選預設語音即可。
-        return picked ? { voice: picked, confidentFemale: true } : { voice: null, confidentFemale: false };
-    }
-
     function speak(text) {
         if (isPaused || !window.speechSynthesis) return;
         try {
             window.speechSynthesis.cancel();
-            // 取消跟念新語音中間留一點緩衝，減少部分裝置銜接太快產生怪音的機會
-            setTimeout(() => {
-                if (isPaused) return;
-                try {
-                    const msg = new SpeechSynthesisUtterance(text);
-                    msg.lang = 'zh-TW';
-                    msg.rate = 0.9;
-                    const { voice, confidentFemale } = pickVoice();
-                    if (voice) msg.voice = voice;
-                    // 找到明確的女聲就只是稍微柔化；找不到的話，把音調拉得更高，
-                    // 盡量往柔和、輕快的方向調整（但如果裝置只有一個偏男聲的語音，
-                    // 光調音調沒辦法完全改變音色特質，這是手機語音包本身的限制）。
-                    msg.pitch = confidentFemale ? 1.08 : 1.1;
-                    window.speechSynthesis.speak(msg);
-                } catch (e) {}
-            }, 70);
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'zh-TW';
+            window.speechSynthesis.speak(msg);
         } catch (e) {}
     }
     function showVoiceDebugList() {
@@ -383,21 +451,11 @@
         osc.start(now); osc.stop(now + 0.14);
     }
 
-    function renderLevelList() {
-        const container = document.getElementById('levelList');
-        container.innerHTML = '';
-        LEVELS.forEach(lv => {
-            const btn = document.createElement('div');
-            btn.className = 'level-btn';
-            btn.innerHTML = `<span class="lv-name">${lv.name}</span><span class="lv-desc">${lv.desc}</span>`;
-            btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startGame(lv.id); });
-            container.appendChild(btn);
-        });
-    }
-
-    function showLevelSelect() {
+    function restartGame() {
         isPaused = false;
         pendingNextQuestion = false;
+        gameStarted = false;
+        questionCount = 0;
         if (gameInterval) clearInterval(gameInterval);
         if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
         if (timerInterval) clearInterval(timerInterval);
@@ -409,10 +467,10 @@
         document.getElementById('home-screen').style.display = 'flex';
     }
 
-    function startGame(levelId) {
+    function startGame() {
         if (document.getElementById('home-screen').style.display === 'none') return;
-        currentLevel = LEVELS.find(l => l.id === levelId);
-        document.getElementById('levelLabel').innerText = `間隔不固定．${currentLevel.name}`;
+        gameStarted = true;
+        questionCount = 0;
 
         if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
         if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -446,11 +504,11 @@
         ['slow', 'normal', 'fast'].forEach(m => {
             document.getElementById('speed' + m.charAt(0).toUpperCase() + m.slice(1)).classList.toggle('active', m === mode);
         });
-        if (!isPaused && !isAnswered && currentLevel) startSpawning();
+        if (!isPaused && !isAnswered && gameStarted) startSpawning();
     }
 
     function togglePause() {
-        if (!currentLevel) return;
+        if (!gameStarted) return;
         isPaused = !isPaused;
         const pauseBtn = document.getElementById('pause-btn');
 
@@ -479,15 +537,20 @@
     }
 
     function loadQuestion() {
-        if (!currentLevel) return;
+        if (!gameStarted) return;
         isAnswered = false;
         hintLevel = 0;
         hintActiveValue = null;
         hideCompletionScreen();
         if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
 
-        // 每一題都重新抽一個間隔，不固定
-        STEP = STEP_POOL[Math.floor(Math.random() * STEP_POOL.length)];
+        const tier = getDifficultyForQuestion();
+        questionCount++;
+        // 依目前難度階段的間隔池，重新抽一個間隔
+        STEP = tier.stepPool[Math.floor(Math.random() * tier.stepPool.length)];
+        currentCarColor = CAR_COLOR_POOL[Math.floor(Math.random() * CAR_COLOR_POOL.length)];
+        currentObjectTheme = OBJECT_THEMES[Math.floor(Math.random() * OBJECT_THEMES.length)];
+        document.getElementById('levelLabel').innerText = `間隔不固定`;
 
         if (!isPaused) document.getElementById('feedback').innerText = "火車車廂少了一個數字，找找看間隔是多少！";
 
@@ -495,8 +558,8 @@
         activeOptions = [];
         if (gameInterval) clearInterval(gameInterval);
 
-        let isAscending = currentLevel.forceDir === 'asc' ? true
-            : currentLevel.forceDir === 'desc' ? false
+        let isAscending = tier.forceDir === 'asc' ? true
+            : tier.forceDir === 'desc' ? false
             : Math.random() < 0.5;
 
         let baseMin, baseMax;
@@ -509,7 +572,7 @@
         trainSequence = [];
         for (let i = 0; i < 4; i++) trainSequence.push(baseNum + i * actualStep);
 
-        const blankIndex = currentLevel.blankMode === 'last' ? 3 : Math.floor(Math.random() * 4);
+        const blankIndex = tier.blankMode === 'last' ? 3 : Math.floor(Math.random() * 4);
         currentAns = trainSequence[blankIndex];
 
         renderTrain(trainSequence, blankIndex);
@@ -534,7 +597,7 @@
     }
 
     function startSpawning() {
-        if (isPaused || isAnswered || !currentLevel) return;
+        if (isPaused || isAnswered || !gameStarted) return;
         if (gameInterval) clearInterval(gameInterval);
         let index = 0;
         gameInterval = setInterval(() => {
@@ -557,7 +620,7 @@
             let windowDiv = document.createElement('div');
             windowDiv.className = 'train-window';
             if (idx === blankIdx) { box.classList.add('target'); windowDiv.innerText = '?'; windowDiv.id = 'trainTarget'; }
-            else windowDiv.innerText = num;
+            else { windowDiv.innerText = num; box.style.background = currentCarColor.bg; box.style.borderColor = currentCarColor.border; }
             box.appendChild(windowDiv);
             carriage.appendChild(box);
             let wheels = document.createElement('div');
@@ -574,7 +637,7 @@
     }
 
     function useHint() {
-        if (isPaused || isAnswered || !currentLevel) return;
+        if (isPaused || isAnswered || !gameStarted) return;
         hintLevel++;
         let blankIndex = trainSequence.indexOf(currentAns);
         let isAscending = trainSequence.length > 1 && trainSequence[1] > trainSequence[0];
@@ -602,8 +665,13 @@
 
     function showCompletionScreen() {
         document.getElementById('completeEquation').innerText = trainSequence.join(' → ');
-        document.getElementById('completeEquation').insertAdjacentHTML('afterend',
-            `<div id="completeStepNote" style="color:#0284c7; font-weight:bold; font-size:14px;">這一題的間隔是 ${STEP} 喔！</div>`);
+        let stepNote = document.getElementById('completeStepNote');
+        if (!stepNote) {
+            document.getElementById('completeEquation').insertAdjacentHTML('afterend',
+                `<div id="completeStepNote" style="color:#0284c7; font-weight:bold; font-size:14px;"></div>`);
+            stepNote = document.getElementById('completeStepNote');
+        }
+        stepNote.innerText = `這一題的間隔是 ${STEP} 喔！`;
         document.getElementById('completeOverlay').style.display = 'flex';
     }
     function hideCompletionScreen() {
@@ -612,18 +680,43 @@
         if (note) note.remove();
     }
 
+    // 依主題產生掉落物件的內部造型內容（氣球／籃球／機器人／寶石）
+    function renderObjectContent(el, val, theme) {
+        const colorPairs = [
+            ['#dc2626', '#c2410c'], ['#ca8a04', '#16a34a'], ['#0284c7', '#7c3aed'],
+            ['#db2777', '#0891b2'], ['#f97316', '#9a3412']
+        ];
+        const [c1, c2] = colorPairs[Math.floor(Math.random() * colorPairs.length)];
+
+        if (theme === 'balloon') {
+            el.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.08) 16%, ${c1} 42%, ${c1} 100%)`;
+            el.style.setProperty('--balloon-dark', c1);
+            el.innerHTML = `<span class="obj-num">${val}</span>`;
+        } else if (theme === 'basketball') {
+            el.innerHTML = `<div class="obj-badge"><span class="obj-num">${val}</span></div>`;
+        } else if (theme === 'robot') {
+            el.style.setProperty('--robot-eye', c2);
+            el.innerHTML = `
+                <div class="robot-antenna"></div>
+                <div class="robot-eye left"></div>
+                <div class="robot-eye right"></div>
+                <span class="obj-num">${val}</span>
+            `;
+        } else if (theme === 'gem') {
+            el.style.setProperty('--gem-color', c1);
+            el.style.setProperty('--gem-dark', c2);
+            el.innerHTML = `<span class="obj-num">${val}</span>`;
+        }
+    }
+
     function spawnFallingOption(val) {
         if (isAnswered) return;
         const container = document.getElementById('drop-game-container');
         const el = document.createElement('div');
-        el.className = 'falling-option';
-        el.innerText = val;
+        el.className = 'falling-option theme-' + currentObjectTheme;
         if (hintActiveValue !== null && val === hintActiveValue) el.classList.add('hint-glow');
 
-        const colors = ['#dc2626', '#c2410c', '#ca8a04', '#16a34a', '#0284c7', '#7c3aed', '#db2777'];
-        const dark = colors[Math.floor(Math.random() * colors.length)];
-        el.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.08) 16%, ${dark} 42%, ${dark} 100%)`;
-        el.style.setProperty('--balloon-dark', dark);
+        renderObjectContent(el, val, currentObjectTheme);
 
         const randomX = Math.random() * (container.clientWidth - 66);
         el.style.left = randomX + 'px';
@@ -695,7 +788,6 @@
         activeOptions.push(el);
     }
 
-    renderLevelList();
 </script>
 </body>
 </html>
