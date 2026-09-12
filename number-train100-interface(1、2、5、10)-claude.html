@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>100以內數字接力遊戲</title>
+    <title>數學冒險：1到300火車過山洞篇</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -16,7 +16,7 @@
         }
 
         .main-wrapper {
-            width: 100%; max-width: 580px; max-height: 98vh; height: 100%;
+            width: 100%; max-width: 580px; max-height: 98vh; max-height: 98dvh; height: 100%;
             background: #ffffff; border: 4px solid #cbd5e1; border-radius: 20px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 14px; box-sizing: border-box;
             display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
@@ -95,13 +95,13 @@
         }
         .train-carriage { position: relative; display: flex; flex-direction: column; align-items: center; }
         .train-box {
-            width: 68px; height: 62px; background: #3b82f6; border: 3px solid #1e40af;
+            width: 76px; height: 64px; background: #3b82f6; border: 3px solid #1e40af;
             border-radius: 12px 12px 6px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center;
             font-size: 21px; font-weight: bold; color: #ffffff; box-shadow: 0 5px 10px rgba(0,0,0,0.15); z-index: 2;
         }
         .train-window {
-            width: 42px; height: 22px; background: #e0f2fe; border: 2px solid #1e40af; border-radius: 4px;
-            display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: bold; color: #1e293b;
+            width: 50px; height: 24px; background: #e0f2fe; border: 2px solid #1e40af; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: bold; color: #1e293b;
         }
         .train-wheels { display: flex; gap: 22px; margin-top: -4px; z-index: 3; }
         .wheel { width: 13px; height: 13px; background: #334155; border: 2px solid #cbd5e1; border-radius: 50%; }
@@ -121,10 +121,10 @@
         }
         /* 氣球：從下面慢慢往上飄，左右輕輕搖擺，答對時會開心戳破 */
         .falling-option {
-            position: absolute; width: 62px; height: 74px;
+            position: absolute; width: 66px; height: 78px;
             border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 22px; font-weight: bold; color: #ffffff; cursor: pointer;
+            font-size: 20px; font-weight: bold; color: #ffffff; cursor: pointer;
             text-shadow: 0 1px 3px rgba(0,0,0,0.55), 0 0 3px rgba(0,0,0,0.4);
             box-shadow: 0 4px 10px rgba(0,0,0,0.2),
                         inset -8px -8px 14px rgba(0,0,0,0.15),
@@ -180,7 +180,7 @@
 
 <div class="main-wrapper">
     <div id="home-screen">
-        <h1>🚂 100以內數字接力遊戲</h1>
+        <h1>🚂 1到300：火車過山洞</h1>
         <p class="subtitle">🌟 語音互動 × 數字序列推理 × 氣球闖關！</p>
 
         <div class="intro-card">
@@ -234,7 +234,7 @@
 </div>
 
 <script>
-    const MIN_NUM = 1, MAX_NUM = 99;
+    const MIN_NUM = 1, MAX_NUM = 300;
     let currentStep = 1;
     let questionCount = 0; // 追蹤目前是第幾題，用來決定難度階段
 
@@ -277,6 +277,8 @@
         fast:   { fallDuration: 3,   spawnInterval: 1300 }
     };
 
+    // 挑選比較有把握是女聲的語音；如果裝置上完全沒有明確標示女聲的中文語音，
+    // 就至少避開明確標示男聲的，並且用提高音調的方式讓聲音聽起來更柔和。
     function speak(text) {
         if (isPaused || !window.speechSynthesis) return;
         try {
@@ -571,7 +573,7 @@
         el.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.08) 16%, ${dark} 42%, ${dark} 100%)`;
         el.style.setProperty('--balloon-dark', dark);
 
-        const randomX = Math.random() * (container.clientWidth - 62);
+        const randomX = Math.random() * (container.clientWidth - 66);
         el.style.left = randomX + 'px';
         el.style.animationDuration = SPEED_SETTINGS[speedMode].fallDuration + 's';
         if (isPaused) el.style.animationPlayState = 'paused';
