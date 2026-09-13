@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>300以內的數字接力遊戲(間隔不定)</title>
+    <title>數學冒險：1到300火車過山洞篇</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -249,7 +249,7 @@
 
 <div class="main-wrapper">
     <div id="home-screen">
-        <h1>🚂 300以內的數字接力遊戲(間隔不定)</h1>
+        <h1>🚂 1到300：火車過山洞</h1>
         <p class="subtitle">🌟 間隔不固定 × 語音互動 × 氣球闖關！</p>
 
         <div class="intro-card">
@@ -264,11 +264,6 @@
         </div>
 
         <button class="start-btn" id="startBtn" onclick="startGame()">🎮 開始遊戲</button>
-
-        <div id="voiceDebugBox" style="width:100%; margin-top:10px; padding:8px 10px; background:#fef9c3; border:2px dashed #eab308; border-radius:10px; font-size:11px; color:#78350f; text-align:left; display:none;">
-            <b>🔧 偵測到的中文語音（除錯用）：</b>
-            <div id="voiceDebugList" style="margin-top:4px; line-height:1.6;"></div>
-        </div>
     </div>
 
     <div id="game-ui">
@@ -375,26 +370,6 @@
             msg.lang = 'zh-TW';
             window.speechSynthesis.speak(msg);
         } catch (e) {}
-    }
-    function showVoiceDebugList() {
-        if (!window.speechSynthesis) return;
-        const voices = window.speechSynthesis.getVoices();
-        const zhVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('zh'));
-        const box = document.getElementById('voiceDebugBox');
-        const list = document.getElementById('voiceDebugList');
-        if (!box || !list) return;
-        if (zhVoices.length === 0) {
-            list.innerHTML = '（目前還沒偵測到中文語音，稍等一下或重新整理看看）';
-        } else {
-            list.innerHTML = zhVoices.map(v => `• ${v.name}　(${v.lang}${v.localService ? '，本機' : '，雲端'})`).join('<br>');
-        }
-        box.style.display = 'block';
-    }
-    if (window.speechSynthesis) {
-        window.speechSynthesis.onvoiceschanged = showVoiceDebugList;
-        showVoiceDebugList();
-        setTimeout(showVoiceDebugList, 500);
-        setTimeout(showVoiceDebugList, 1500);
     }
 
     function boom() { try { confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } }); } catch (e) {} }
