@@ -136,7 +136,7 @@
         }
         .cell.col-active { background: #dbeafe; box-shadow: 0 0 0 2px #0284c7; animation: colPulse 1s infinite; }
         .cell.ans-active { border: 2.5px dashed #94a3b8; color: #cbd5e1; }
-        .cell.ans-active.col-active { border: 2.5px solid #16a34a; background: #dcfce7; color: #15803d; }
+        .cell.ans-active.col-active { border: 2.5px solid #16a34a; color: #15803d; animation: colPulseAns 1s infinite; }
         .cell.ans-filled { color: #166534; }
         .cell.phantom-cell { border: none; background: transparent; }
 
@@ -151,8 +151,12 @@
         .carry-cell.show { opacity: 1; transform: scale(1); background: #bbf7d0; border-color: #16a34a; color: #166534; }
 
         @keyframes colPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.06); }
+            0%, 100% { transform: scale(1); background-color: #dbeafe; box-shadow: 0 0 0 2px #0284c7; }
+            50% { transform: scale(1.08); background-color: #fef08a; box-shadow: 0 0 12px rgba(250,204,21,0.85); }
+        }
+        @keyframes colPulseAns {
+            0%, 100% { transform: scale(1); background-color: #dcfce7; }
+            50% { transform: scale(1.08); background-color: #fef08a; box-shadow: 0 0 12px rgba(250,204,21,0.85); }
         }
 
         #drop-game-container {
@@ -233,7 +237,7 @@
                         <li><strong>進位會用紅色小方塊提醒：</strong>答對後如果需要進位，下一欄上方會出現「1」提醒。</li>
                         <li><strong>戳氣球作答：</strong>畫面下方會飄上來一顆顆氣球，點對答案的氣球會開心戳破！</li>
                         <li><strong>卡住了嗎：</strong>按「💡提示」會給你線索！</li>
-                        <li>題目會先從不用進位的基礎加法開始，慢慢加深到需要進位的部分喔！</li>
+                        <li>題目會先從一位數開始多練習幾題，熟悉不進位、進位的概念後，再進入二位數喔！</li>
                     </ul>
                 </div>
 
@@ -329,18 +333,24 @@
 
         let questionCount = 0; // 追蹤目前是第幾題，用來決定難度階段
 
-        // 難度隨題數漸進提升：先從不用進位的基礎加法開始（一位數、再二位數），
-        // 熟悉直式加法的格式後，才進入需要進位的部分（一位數進位、二位數進位）。
+        // 難度隨題數漸進提升：先練習一位數（不進位、再進位），一位數安排比較多題，
+        // 熟悉進位概念後，才進入二位數（同樣先不進位、再進位）。
         const DIFFICULTY_TIERS = [
             { digitCount: 1, forceCarry: false },
-            { digitCount: 2, forceCarry: false },
             { digitCount: 1, forceCarry: true  },
+            { digitCount: 2, forceCarry: false },
             { digitCount: 2, forceCarry: true  }
         ];
-        const QUESTIONS_PER_TIER = 5;
+        // 一位數階段題目安排多一點（8題），二位數階段維持5題
+        const QUESTIONS_PER_TIER_BY_DIGIT = { 1: 8, 2: 5 };
         function getDifficultyForQuestion() {
-            const tierIndex = Math.min(Math.floor(questionCount / QUESTIONS_PER_TIER), DIFFICULTY_TIERS.length - 1);
-            return DIFFICULTY_TIERS[tierIndex];
+            let remaining = questionCount;
+            for (const tier of DIFFICULTY_TIERS) {
+                const count = QUESTIONS_PER_TIER_BY_DIGIT[tier.digitCount];
+                if (remaining < count) return tier;
+                remaining -= count;
+            }
+            return DIFFICULTY_TIERS[DIFFICULTY_TIERS.length - 1];
         }
 
         let gameStarted = false;

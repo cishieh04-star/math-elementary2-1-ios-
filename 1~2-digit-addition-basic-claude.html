@@ -64,6 +64,8 @@
             display: flex; flex-direction: column; gap: 2px;
         }
         .level-btn:active { transform: scale(0.98); background: #f0f9ff; }
+        .start-btn { padding: 12px 30px; font-size: 22px; font-weight: bold; background-color: #0ea5e9; color: white; border-radius: 16px; cursor: pointer; box-shadow: 0px 4px 10px rgba(0,0,0,0.2); border: none; width: 100%; max-width: 260px; }
+        .start-btn:active { transform: scale(0.95); background-color: #0284c7; }
         .level-btn .lv-name { font-size: 15px; font-weight: bold; color: #0284c7; }
         .level-btn .lv-desc { font-size: 12px; color: #334155; }
 
@@ -134,12 +136,16 @@
         }
         .cell.col-active { background: #dbeafe; box-shadow: 0 0 0 2px #0284c7; animation: colPulse 1s infinite; }
         .cell.ans-active { border: 2.5px dashed #94a3b8; color: #cbd5e1; }
-        .cell.ans-active.col-active { border: 2.5px solid #16a34a; background: #dcfce7; color: #15803d; }
+        .cell.ans-active.col-active { border: 2.5px solid #16a34a; color: #15803d; animation: colPulseAns 1s infinite; }
         .cell.ans-filled { color: #166534; }
 
         @keyframes colPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.06); }
+            0%, 100% { transform: scale(1); background-color: #dbeafe; box-shadow: 0 0 0 2px #0284c7; }
+            50% { transform: scale(1.08); background-color: #fef08a; box-shadow: 0 0 12px rgba(250,204,21,0.85); }
+        }
+        @keyframes colPulseAns {
+            0%, 100% { transform: scale(1); background-color: #dcfce7; }
+            50% { transform: scale(1.08); background-color: #fef08a; box-shadow: 0 0 12px rgba(250,204,21,0.85); }
         }
 
         #drop-game-container {
@@ -221,11 +227,11 @@
                         <li><strong>戳氣球作答：</strong>畫面下方會飄上來一顆顆氣球，點對答案的氣球會開心戳破！</li>
                         <li><strong>卡住了嗎：</strong>按「💡提示」會給你線索！</li>
                         <li><strong>語速與聽題目：</strong>可調整飄浮速度，隨時點擊「🔊聽題目」。</li>
+                        <li>題目會先從一位數開始多練習幾題，再進入二位數喔！</li>
                     </ul>
                 </div>
 
-                <div class="level-pick-title">請選擇關卡：</div>
-                <div id="levelList" style="width:100%;"></div>
+                <button class="start-btn" id="startBtn" onclick="startGame()">🎮 開始遊戲</button>
             </div>
         </div>
 
@@ -240,7 +246,7 @@
                 <button class="control-btn hint-btn" onclick="useHint()">💡提示</button>
                 <button class="control-btn speak-btn" onclick="manualSpeak()">🔊聽題目</button>
                 <button class="control-btn pause-btn-el" id="pauseBtn" onclick="togglePause()">暫停</button>
-                <button class="control-btn switch-btn" onclick="showLevelSelect()">🔄換關卡</button>
+                <button class="control-btn switch-btn" onclick="restartGame()">🔄重新開始</button>
             </div>
         </div>
 
@@ -304,12 +310,14 @@
         const CELL_ANS  = { u: 'ansU',  t: 'ansT' };
         const CELL_LBL  = { u: null,    t: 'lblT' };
 
-        const LEVELS = [
-            { id: 1, name: '第一關：一位數', desc: '練習個位的基礎直式加法。', digitCount: 1 },
-            { id: 2, name: '第二關：二位數', desc: '進階到十位，練習兩位數的直式加法。', digitCount: 2 }
-        ];
+        let questionCount = 0; // 追蹤目前是第幾題，用來決定難度
 
-        let currentLevel = null;
+        // 難度隨題數漸進提升：先練習一位數（多安排幾題），熟悉直式加法格式後才進入二位數。
+        function getDigitCountForQuestion() {
+            return questionCount < 8 ? 1 : 2;
+        }
+
+        let gameStarted = false;
         let score = 0;
         let placesOrder = [];
         let digitsUp = {}, digitsDown = {}, targets = {};
@@ -340,46 +348,23 @@
                 window.speechSynthesis.cancel();
                 let finished = false;
                 const trigger = () => { if (finished) return; finished = true; if (onEnd) onEnd(); };
-                setTimeout(() => {
-                    if (isPaused) { trigger(); return; }
-                    try {
-                        const utter = new SpeechSynthesisUtterance(text);
-                        utter.lang = 'zh-TW';
-                        utter.rate = 0.88;
-                        utter.pitch = 1.1;
-                        utter.volume = 1.0;
-                        const voices = window.speechSynthesis.getVoices();
-                        const femalePattern = /female|女|meijia|mei-jia|yating|ya-ting|tingting|xiaoxiao|xiaoyi|hanhan|sinji|sin-ji|zhiyu|xiaoshuang|yaoyao/i;
-                        const zhVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('zh'));
-                        const picked = zhVoices.find(v => femalePattern.test(v.name));
-                        if (picked) utter.voice = picked;
-                        utter.onend = trigger;
-                        utter.onerror = trigger;
-                        window.speechSynthesis.speak(utter);
-                        const fallbackTime = Math.max(1500, text.length * 280 / 0.88);
-                        setTimeout(trigger, fallbackTime);
-                    } catch (e) { trigger(); }
-                }, 70);
+                const utter = new SpeechSynthesisUtterance(text);
+                utter.lang = 'zh-TW';
+                utter.onend = trigger;
+                utter.onerror = trigger;
+                window.speechSynthesis.speak(utter);
+                const fallbackTime = Math.max(1500, text.length * 280 / 0.88);
+                setTimeout(trigger, fallbackTime);
             } catch (e) { if (onEnd) onEnd(); }
         }
 
         function manualSpeak() { speak(lastSpokenText || "請依照步驟計算直式加法。"); }
         function boom() { try { confetti(); } catch (e) {} }
 
-        function renderLevelList() {
-            const container = document.getElementById('levelList');
-            container.innerHTML = '';
-            LEVELS.forEach(lv => {
-                const btn = document.createElement('div');
-                btn.className = 'level-btn';
-                btn.innerHTML = `<span class="lv-name">${lv.name}</span><span class="lv-desc">${lv.desc}</span>`;
-                btn.addEventListener('pointerdown', (e) => { e.preventDefault(); startGame(lv.id); });
-                container.appendChild(btn);
-            });
-        }
-
-        function showLevelSelect() {
+        function restartGame() {
             isPaused = false;
+            gameStarted = false;
+            questionCount = 0;
             pendingAdvance = false;
             pendingNextQuestion = false;
             if (gameInterval) clearInterval(gameInterval);
@@ -392,19 +377,14 @@
             document.getElementById('startOverlay').style.display = 'flex';
         }
 
-        function startGame(levelId) {
+        function startGame() {
             const overlay = document.getElementById('startOverlay');
             if (overlay.style.display === 'none') return;
-            currentLevel = LEVELS.find(l => l.id === levelId);
-            document.getElementById('levelLabel').innerText = currentLevel.name;
+            gameStarted = true;
+            questionCount = 0;
 
             if ('speechSynthesis' in window) {
-                try {
-                    window.speechSynthesis.cancel();
-                    let unlock = new SpeechSynthesisUtterance("遊戲開始");
-                    unlock.volume = 0.01;
-                    window.speechSynthesis.speak(unlock);
-                } catch (e) {}
+                try { window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
             }
 
             score = 0;
@@ -419,11 +399,11 @@
                 document.getElementById('speed' + m.charAt(0).toUpperCase() + m.slice(1))
                     .classList.toggle('active', m === mode);
             });
-            if (!isPaused && !isLocked && currentLevel) setupFalling();
+            if (!isPaused && !isLocked && gameStarted) setupFalling();
         }
 
         function togglePause() {
-            if (!currentLevel) return;
+            if (!gameStarted) return;
             isPaused = !isPaused;
             const pauseBtn = document.getElementById('pauseBtn');
             const options = document.querySelectorAll('.falling-option');
@@ -478,13 +458,17 @@
         }
 
         function initQuestion() {
-            if (isPaused || !currentLevel) return;
+            if (isPaused || !gameStarted) return;
             hideCompletionScreen();
             isLocked = false;
             hintLevel = 0;
             hintActiveValue = null;
 
-            const q = generateQuestion(currentLevel);
+            const digitCount = getDigitCountForQuestion();
+            questionCount++;
+            document.getElementById('levelLabel').innerText = `第 ${questionCount} 題`;
+
+            const q = generateQuestion({ digitCount });
             placesOrder = q.places;
             digitsUp = q.up;
             digitsDown = q.down;
@@ -518,7 +502,7 @@
         }
 
         function runStep() {
-            if (isPaused || !currentLevel) return;
+            if (isPaused || !gameStarted) return;
             const p = placesOrder[stepIndex];
             if (!p) return;
             isLocked = false;
@@ -540,7 +524,7 @@
         }
 
         function setupFalling() {
-            if (isPaused || !currentLevel) return;
+            if (isPaused || !gameStarted) return;
             activeOptions.forEach(el => el.remove());
             activeOptions = [];
             if (gameInterval) clearInterval(gameInterval);
@@ -568,7 +552,7 @@
         }
 
         function useHint() {
-            if (isPaused || isLocked || !currentLevel) return;
+            if (isPaused || isLocked || !gameStarted) return;
             const p = placesOrder[stepIndex];
             if (!p) return;
             hintLevel++;
@@ -760,7 +744,6 @@
             }
         }
 
-        renderLevelList();
     </script>
 </body>
 </html>
