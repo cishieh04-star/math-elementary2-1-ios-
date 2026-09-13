@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>兩位數直式減法遊戲(不退位+退位．由簡入難)</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+        html, body {
+            margin: 0; padding: 0;
+            width: 100vw; height: 100vh; height: 100dvh;
+            font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif;
+            background: linear-gradient(135deg, #ede9fe, #fce7f3);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            overflow: hidden; touch-action: manipulation;
+        }
+
+        #home-screen, #game-ui {
+            width: 100%; max-width: 500px; height: 100%; max-height: 100dvh;
+            display: flex; flex-direction: column; align-items: center;
+            background: #fff; border-radius: 18px; border: 3px solid #a855f7;
+            padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin: auto; position: relative;
+            overflow-y: auto; gap: 6px;
+        }
+        #home-screen { justify-content: flex-start; }
+        #game-ui { display: none; justify-content: flex-start; }
+
+        h1 { font-size: 19px; color: #7e22ce; margin: 4px 0; }
+        .subtitle { color: #9333ea; font-size: 13px; margin: 0 0 8px 0; font-weight: bold; }
+
+        .intro-card {
+            background: #faf5ff; border: 2px solid #e9d5ff;
+            border-radius: 12px; padding: 8px 14px; margin-bottom: 10px; width: 100%;
+            text-align: left; box-sizing: border-box;
+        }
+        .intro-card h3 { margin: 0 0 4px 0; font-size: 14px; color: #7e22ce; }
+        .intro-card ul { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.5; color: #581c87; }
+        .intro-card li { margin-bottom: 3px; }
+
+        .start-btn { padding: 12px 30px; font-size: 22px; font-weight: bold; background-color: #a855f7; color: white; border-radius: 16px; cursor: pointer; box-shadow: 0px 4px 10px rgba(0,0,0,0.2); border: none; width: 100%; max-width: 260px; }
+        .start-btn:active { transform: scale(0.95); background-color: #9333ea; }
+
+        #status-bar {
+            display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; row-gap: 4px;
+            font-size: 13px; font-weight: bold; color: #7e22ce;
+            border-bottom: 2px solid #faf5ff; padding-bottom: 4px; flex-shrink: 0;
+        }
+        .btn-group { display: flex; gap: 4px; flex-wrap: wrap; row-gap: 4px; }
+        .control-btn {
+            padding: 5px 10px; font-size: 12px; background: #a855f7; color: white; border: none;
+            border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+        .control-btn:active { transform: scale(0.95); background: #9333ea; }
+        .hint-btn { background: #16a34a; }
+        .pause-btn-el { background: #ea580c; }
+        .switch-btn { background: #64748b; }
+
+        .speed-row { display: flex; gap: 4px; justify-content: center; width: 100%; flex-shrink: 0; }
+        .speed-btn {
+            flex: 1; max-width: 100px; background: #faf5ff; color: #581c87; border: 2px solid #e9d5ff;
+            border-radius: 8px; padding: 3px 4px; font-size: 12px; font-weight: bold; cursor: pointer;
+        }
+        .speed-btn.active { background: #a855f7; color: #fff; border-color: #9333ea; }
+        .speed-btn:active { transform: scale(0.95); }
+
+        .step-banner { background: #faf5ff; color: #6b21a8; padding: 6px 10px; border-radius: 8px; font-size: 14px; font-weight: bold; width: 100%; line-height: 1.35; text-align: center; flex-shrink: 0; }
+
+        /* 兩位數直式排版區 */
+        .vertical-math {
+            display: inline-flex; flex-direction: column; align-items: flex-end;
+            font-size: 34px; font-weight: bold; font-family: monospace;
+            background: #f8fafc; padding: 8px 18px 8px 22px; border-radius: 12px; border: 2px solid #cbd5e1;
+            position: relative; margin: 4px 0; flex-shrink: 0; overflow: visible;
+            transition: border-color 0.4s;
+        }
+        .vertical-math.borrow-mode { border-color: #d8b4fe; background: #faf5ff; }
+        .math-row { display: flex; gap: 8px; width: 100%; justify-content: flex-end; }
+        .math-line { width: 100%; height: 3px; background: #333; margin: 3px 0; }
+        .cell { width: 38px; text-align: center; display: flex; align-items: center; justify-content: center; height: 42px; position: relative; border-radius: 6px; transition: background 0.3s; }
+        .cell.ans-cell { color: #16a34a; }
+        .cell.col-active {
+            background: #f3e8ff;
+            animation: colFlash 1s ease-in-out infinite;
+        }
+        @keyframes colFlash {
+            0%, 100% { background: #f3e8ff; box-shadow: 0 0 0 rgba(250,204,21,0); }
+            50% { background: #fde047; box-shadow: 0 0 10px rgba(250,204,21,0.7); }
+        }
+        .operator { position: absolute; left: 6px; top: 44px; font-size: 26px; color: #333; }
+
+        /* 十位上方數字：退位時原本的數字劃線變暗，旁邊出現借位後的新數字 */
+        .tens-up-digit { transition: opacity 0.4s, color 0.4s; }
+        .tens-up-digit.borrowed { text-decoration: line-through; text-decoration-color: #dc2626; text-decoration-thickness: 3px; opacity: 0.4; }
+        .tens-up-new {
+            position: absolute; top: -20px; right: -2px;
+            font-size: 19px; color: #dc2626; font-weight: bold;
+            opacity: 0; transform: scale(0.3);
+            transition: all 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .tens-up-new.show { opacity: 1; transform: scale(1); }
+
+        #feedback { font-size: 14px; color: #9333ea; font-weight: bold; min-height: 20px; flex-shrink: 0; }
+
+        #drop-game-container {
+            position: relative; width: 100%; flex-grow: 1; min-height: 150px; max-height: 240px;
+            background: linear-gradient(180deg, #ede9fe, #fdf4ff);
+            border: 3px solid #d8b4fe; border-radius: 14px;
+            overflow: hidden; touch-action: manipulation;
+        }
+
+        .falling-option { position: absolute; cursor: pointer; z-index: 999; }
+        .falling-option:active { transform: scale(0.92); }
+        .falling-option.popping { animation: popEffect 0.3s ease-out forwards !important; pointer-events: none; }
+        @keyframes popEffect {
+            0% { transform: scale(1) rotate(0deg); opacity: 1; }
+            40% { transform: scale(1.3) rotate(-8deg); opacity: 1; }
+            100% { transform: scale(0.15) rotate(12deg); opacity: 0; }
+        }
+
+        /* 主題一：冰淇淋（不退位階段） */
+        .falling-option.theme-icecream { width: 58px; height: 82px; animation: floatDown linear forwards; }
+        .cone {
+            position: absolute; bottom: 0; left: 9px; width: 0; height: 0;
+            border-left: 20px solid transparent; border-right: 20px solid transparent;
+            border-top: 34px solid #d97706;
+        }
+        .cone::before {
+            content: ''; position: absolute; top: -34px; left: -18px; width: 36px; height: 30px;
+            background:
+                repeating-linear-gradient(45deg, rgba(255,255,255,0.35) 0 3px, transparent 3px 8px),
+                repeating-linear-gradient(-45deg, rgba(120,53,15,0.25) 0 3px, transparent 3px 8px);
+            clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+        }
+        .scoop {
+            position: absolute; top: 0; left: 4px; width: 50px; height: 46px; border-radius: 50% 50% 45% 45%;
+            background: radial-gradient(circle at 35% 28%, #ffffff, var(--icecream-color, #fda4af) 55%, var(--icecream-dark, #e11d48) 100%);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+        }
+        .theme-icecream .num-badge {
+            position: absolute; top: 10px; left: 9px; width: 40px; height: 30px; z-index: 3;
+            background: rgba(255,255,255,0.95); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+        .theme-icecream .obj-num { font-size: 17px; font-weight: bold; color: var(--icecream-dark, #e11d48); }
+        .falling-option.theme-icecream.hint-glow .scoop {
+            box-shadow: 0 0 0 3px #fde047, 0 3px 6px rgba(0,0,0,0.3);
+            animation: glowPulse 1s ease-in-out infinite;
+        }
+        @keyframes floatDown { 0% { top: -85px; } 100% { top: 100%; } }
+        @keyframes glowPulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.4); } }
+
+        /* 主題二：蝴蝶（退位階段） */
+        .falling-option.theme-butterfly { width: 66px; height: 52px; animation: floatDown2 linear forwards, flutter 0.6s ease-in-out infinite; }
+        @keyframes floatDown2 { 0% { top: -60px; } 100% { top: 100%; } }
+        @keyframes flutter { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+        .wing {
+            position: absolute; top: 4px; width: 26px; height: 36px; border-radius: 65% 35% 65% 35%;
+            background: radial-gradient(circle at 65% 30%, #ffffff, var(--butterfly-color, #f0abfc) 55%, var(--butterfly-dark, #a21caf) 100%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .wing.left { left: 4px; transform: rotate(-12deg); }
+        .wing.right { right: 4px; transform: rotate(12deg) scaleX(-1); }
+        .butterfly-body {
+            position: absolute; left: 50%; top: 6px; width: 5px; height: 40px;
+            background: #422006; border-radius: 3px; transform: translateX(-50%); z-index: 2;
+        }
+        .theme-butterfly .num-badge {
+            position: absolute; top: 11px; left: 50%; transform: translateX(-50%); z-index: 3;
+            width: 34px; height: 28px; background: rgba(255,255,255,0.95); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+        .theme-butterfly .obj-num { font-size: 16px; font-weight: bold; color: var(--butterfly-dark, #a21caf); }
+        .falling-option.theme-butterfly.hint-glow .num-badge {
+            box-shadow: 0 0 0 3px #fde047, 0 1px 4px rgba(0,0,0,0.3);
+            animation: glowPulse 1s ease-in-out infinite;
+        }
+
+        #completeOverlay {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.96); border-radius: 16px; z-index: 5000;
+            flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 16px;
+        }
+        #completeOverlay .equation-big { font-size: 22px; font-weight: bold; color: #7e22ce; font-family: monospace; }
+        #completeOverlay .cheer { font-size: 16px; font-weight: bold; color: #6b21a8; }
+
+        #transitionOverlay {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(126,34,206,0.96); border-radius: 16px; z-index: 6000;
+            flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 24px;
+        }
+        #transitionOverlay .big-title { font-size: 22px; font-weight: bold; color: #fff; }
+        #transitionOverlay .desc { font-size: 15px; color: #f3e8ff; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+    <div id="home-screen">
+        <div style="max-width: 460px; width: 100%; display: flex; flex-direction: column; align-items: center; margin: auto;">
+            <h1>🍦 兩位數減法遊戲 🦋</h1>
+            <p class="subtitle">先不退位、再退位，一步一步練習！</p>
+
+            <div class="intro-card">
+                <h3>📖 遊戲使用說明</h3>
+                <ul>
+                    <li><strong>第一階段：</strong>先練習不需要借位的減法，上面的數字都比下面大，直接減就好。</li>
+                    <li><strong>第二階段：</strong>熟悉之後，進入需要向十位借 1 的題目，畫面會清楚說明每一步在做什麼。</li>
+                    <li><strong>作答方式：</strong>先算個位，畫面下方會飄出可愛的物件，點對答案的那個就能過關！接著再算十位，完成整題。</li>
+                    <li><strong>卡住了嗎：</strong>按「💡提示」會給你線索！</li>
+                    <li>題目會先從小數字開始，慢慢加深難度喔！</li>
+                </ul>
+            </div>
+
+            <button class="start-btn" id="startBtn" onclick="startGame()">🎮 開始遊戲</button>
+        </div>
+    </div>
+
+    <div id="game-ui">
+        <div id="status-bar">
+            <span id="score">已完成: 0 關</span>
+            <div class="btn-group">
+                <button class="control-btn hint-btn" onclick="useHint()">💡提示</button>
+                <button class="control-btn pause-btn-el" id="pauseBtn" onclick="togglePause()">暫停</button>
+                <button class="control-btn switch-btn" onclick="restartGame()">🔄重新開始</button>
+            </div>
+        </div>
+
+        <div class="speed-row">
+            <button class="speed-btn" id="speedSlow" onclick="setSpeed('slow')">🐢慢</button>
+            <button class="speed-btn active" id="speedNormal" onclick="setSpeed('normal')">🚶正常</button>
+            <button class="speed-btn" id="speedFast" onclick="setSpeed('fast')">🐇快</button>
+        </div>
+
+        <div class="step-banner" id="stepBanner">請先算個位數相減！</div>
+
+        <div class="vertical-math" id="mathBox">
+            <div class="operator">-</div>
+            <div class="math-row">
+                <div class="cell" id="tUpCell">
+                    <span class="tens-up-digit" id="tUp">7</span>
+                    <span class="tens-up-new" id="tUpNew"></span>
+                </div>
+                <div class="cell" id="uUp">8</div>
+            </div>
+            <div class="math-row">
+                <div class="cell" id="tDown">3</div>
+                <div class="cell" id="uDown">4</div>
+            </div>
+            <div class="math-line"></div>
+            <div class="math-row">
+                <div class="cell ans-cell" id="ansT">?</div>
+                <div class="cell ans-cell" id="ansU">?</div>
+            </div>
+        </div>
+
+        <div id="feedback"></div>
+
+        <div id="drop-game-container"></div>
+
+        <div id="completeOverlay">
+            <div class="equation-big" id="completeEquation">78 - 34 = 44</div>
+            <div class="cheer">🌟 太棒了，過關了！</div>
+        </div>
+
+        <div id="transitionOverlay">
+            <div class="big-title">🌟 進階挑戰開始囉！</div>
+            <div class="desc">接下來的題目，個位不夠減的時候，<br>要向十位借 1 當作 10 喔！<br>畫面會一步一步說明給你聽。</div>
+        </div>
+    </div>
+
+    <script>
+        let questionCount = 0; // 追蹤目前是第幾題，用來決定難度
+
+        // 難度由簡入難，共 6 個階段：
+        // 前 3 階段練習「不退位」的減法（數字範圍由小到大），
+        // 後 3 階段練習「退位」的減法（同樣由小到大），
+        // 兩種類型內部都確保：不退位階段一定不需要借位，退位階段一定需要借位。
+        const DIFFICULTY_TIERS = [
+            { needsBorrow: false, maxT: 4, maxU: 5 },
+            { needsBorrow: false, maxT: 7, maxU: 8 },
+            { needsBorrow: false, maxT: 9, maxU: 9 },
+            { needsBorrow: true,  maxT: 4, maxU1: 3 },
+            { needsBorrow: true,  maxT: 7, maxU1: 6 },
+            { needsBorrow: true,  maxT: 9, maxU1: 8 }
+        ];
+        const QUESTIONS_PER_TIER = 5;
+        function getTierIndex() {
+            return Math.min(Math.floor(questionCount / QUESTIONS_PER_TIER), DIFFICULTY_TIERS.length - 1);
+        }
+        function getCurrentTier() {
+            return DIFFICULTY_TIERS[getTierIndex()];
+        }
+
+        function generateQuestion(tier) {
+            if (!tier.needsBorrow) {
+                const t1 = 1 + Math.floor(Math.random() * tier.maxT);
+                const t2 = 1 + Math.floor(Math.random() * t1);
+                const u1 = Math.floor(Math.random() * (tier.maxU + 1));
+                const u2 = Math.floor(Math.random() * (u1 + 1));
+                return { t1, u1, t2, u2, needsBorrow: false };
+            } else {
+                const t1 = 2 + Math.floor(Math.random() * (tier.maxT - 1));
+                const t2 = 1 + Math.floor(Math.random() * (t1 - 1));
+                const u1 = Math.floor(Math.random() * (tier.maxU1 + 1));
+                const u2 = u1 + 1 + Math.floor(Math.random() * (9 - u1));
+                return { t1, u1, t2, u2, needsBorrow: true };
+            }
+        }
+
+        let gameStarted = false;
+        let audioCtx = null;
+        let score = 0;
+        let t1 = 7, u1 = 8, t2 = 3, u2 = 4;
+        let targetU = 4, targetT = 4;
+        let needsBorrow = false;
+        let currentStep = 'unit';
+        let gameInterval = null;
+        let activeOptions = [];
+        let isLocked = false;
+        let isPaused = false;
+        let nextQuestionTimeout = null;
+        let hintLevel = 0;
+        let hintActiveValue = null;
+        let speedMode = 'normal';
+        let hasSeenBorrowIntro = false;
+        let currentTheme = 'icecream';
+
+        const SPEED_SETTINGS = {
+            slow:   { fallDuration: 8,   spawnInterval: 2600 },
+            normal: { fallDuration: 6,   spawnInterval: 2000 },
+            fast:   { fallDuration: 4,   spawnInterval: 1300 }
+        };
+
+        function speak(text, onEnd) {
+            if (isPaused) { if (onEnd) onEnd(); return; }
+            if (!('speechSynthesis' in window)) { if (onEnd) onEnd(); return; }
+            try {
+                window.speechSynthesis.cancel();
+                let finished = false;
+                const trigger = () => { if (finished) return; finished = true; if (onEnd) onEnd(); };
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.lang = 'zh-TW';
+                msg.onend = trigger;
+                msg.onerror = trigger;
+                window.speechSynthesis.speak(msg);
+                setTimeout(trigger, Math.max(1500, text.length * 300 / 0.85));
+            } catch (e) { if (onEnd) onEnd(); }
+        }
+
+        function boom() { try { confetti({ particleCount: 150, spread: 85, origin: { y: 0.6 } }); } catch (e) {} }
+
+        function playPopSound() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(1300, now + 0.14);
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now); osc.stop(now + 0.18);
+            } catch (e) {}
+        }
+
+        function restartGame() {
+            isPaused = false;
+            gameStarted = false;
+            questionCount = 0;
+            hasSeenBorrowIntro = false;
+            if (gameInterval) clearInterval(gameInterval);
+            if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+            activeOptions.forEach(el => el.remove());
+            activeOptions = [];
+            hideCompletionScreen();
+            hideTransitionScreen();
+            try { window.speechSynthesis.cancel(); } catch (e) {}
+            document.getElementById('game-ui').style.display = 'none';
+            document.getElementById('home-screen').style.display = 'flex';
+        }
+
+        function startGame() {
+            if (document.getElementById('home-screen').style.display === 'none') return;
+            gameStarted = true;
+            questionCount = 0;
+            hasSeenBorrowIntro = false;
+
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass && !audioCtx) audioCtx = new AudioContextClass();
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+                if ('speechSynthesis' in window) window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+            } catch (e) {}
+
+            document.getElementById('home-screen').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'flex';
+            score = 0;
+            document.getElementById('score').innerText = `已完成: ${score} 關`;
+            const pauseBtn = document.getElementById('pauseBtn');
+            pauseBtn.innerText = "暫停"; pauseBtn.style.backgroundColor = "#ea580c";
+            initQuestion();
+        }
+
+        function setSpeed(mode) {
+            speedMode = mode;
+            ['slow', 'normal', 'fast'].forEach(m => {
+                document.getElementById('speed' + m.charAt(0).toUpperCase() + m.slice(1)).classList.toggle('active', m === mode);
+            });
+            if (!isPaused && !isLocked && gameStarted) setupFalling();
+        }
+
+        function togglePause() {
+            if (!gameStarted) return;
+            isPaused = !isPaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            const options = document.querySelectorAll('.falling-option');
+
+            if (isPaused) {
+                pauseBtn.innerText = "繼續";
+                pauseBtn.style.backgroundColor = "#16a34a";
+                if (gameInterval) clearInterval(gameInterval);
+                if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+                try { window.speechSynthesis.cancel(); } catch (e) {}
+                options.forEach(el => el.style.animationPlayState = 'paused');
+                document.getElementById('feedback').innerText = "⏸️ 遊戲已暫停，休息一下！";
+            } else {
+                pauseBtn.innerText = "暫停";
+                pauseBtn.style.backgroundColor = "#ea580c";
+                options.forEach(el => el.style.animationPlayState = 'running');
+                document.getElementById('feedback').innerText = "";
+                if (!isLocked) setupFalling();
+            }
+        }
+
+        function highlightColumn(step) {
+            document.querySelectorAll('.cell').forEach(el => el.classList.remove('col-active'));
+            const ids = step === 'unit' ? ['uUp', 'uDown', 'ansU'] : ['tUpCell', 'tDown', 'ansT'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('col-active');
+            });
+        }
+
+        function showTransitionScreen(onDone) {
+            document.getElementById('transitionOverlay').style.display = 'flex';
+            speak('太棒了，前面都答對了！接下來的題目，個位不夠減的時候，要向十位借1當作10喔。畫面會一步一步說明給你聽。', () => {
+                if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+                nextQuestionTimeout = setTimeout(() => {
+                    hideTransitionScreen();
+                    onDone();
+                }, 2500);
+            });
+        }
+        function hideTransitionScreen() {
+            document.getElementById('transitionOverlay').style.display = 'none';
+        }
+
+        function initQuestion() {
+            if (!gameStarted) return;
+
+            const tier = getCurrentTier();
+            const enteringBorrowNow = tier.needsBorrow && !hasSeenBorrowIntro;
+
+            const proceed = () => {
+                isLocked = false;
+                hintLevel = 0;
+                hintActiveValue = null;
+                currentStep = 'unit';
+                hideCompletionScreen();
+                document.getElementById('ansU').innerText = "?";
+                document.getElementById('ansT').innerText = "?";
+                document.getElementById('tUp').classList.remove('borrowed');
+                document.getElementById('tUpNew').classList.remove('show');
+                highlightColumn('unit');
+
+                const q = generateQuestion(tier);
+                questionCount++;
+                t1 = q.t1; u1 = q.u1; t2 = q.t2; u2 = q.u2;
+                needsBorrow = q.needsBorrow;
+                currentTheme = needsBorrow ? 'butterfly' : 'icecream';
+                document.getElementById('mathBox').classList.toggle('borrow-mode', needsBorrow);
+
+                if (needsBorrow) {
+                    targetU = (u1 + 10) - u2;
+                    targetT = (t1 - 1) - t2;
+                } else {
+                    targetU = u1 - u2;
+                    targetT = t1 - t2;
+                }
+
+                document.getElementById('tUp').innerText = t1;
+                document.getElementById('uUp').innerText = u1;
+                document.getElementById('tDown').innerText = t2;
+                document.getElementById('uDown').innerText = u2;
+
+                if (needsBorrow) {
+                    const text = `步驟一：${u1} 減 ${u2} 不夠減，向 ${t1} 借 1，${u1} 變成 ${u1 + 10}，請問 ${u1 + 10} 減 ${u2} 等於多少呢？`;
+                    document.getElementById('stepBanner').innerText = text;
+                    speak(text);
+                } else {
+                    const text = `步驟一：先算個位 ${u1} 減 ${u2}，等於多少呢？`;
+                    document.getElementById('stepBanner').innerText = text;
+                    speak(`個位，${u1} 減 ${u2}，等於多少呢？`);
+                }
+
+                setupFalling();
+            };
+
+            if (enteringBorrowNow) {
+                hasSeenBorrowIntro = true;
+                showTransitionScreen(proceed);
+            } else {
+                proceed();
+            }
+        }
+
+        function setupFalling() {
+            if (isPaused || !gameStarted) return;
+            activeOptions.forEach(el => el.remove());
+            activeOptions = [];
+            if (gameInterval) clearInterval(gameInterval);
+
+            const currentTarget = (currentStep === 'unit') ? targetU : targetT;
+            let options = [currentTarget];
+            while (options.length < 4) {
+                const r = Math.floor(Math.random() * 10);
+                if (!options.includes(r)) options.push(r);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            let index = 0;
+            gameInterval = setInterval(() => {
+                if (isLocked || isPaused) return;
+                if (index >= options.length) index = 0;
+                spawnFallingOption(options[index]);
+                index++;
+            }, SPEED_SETTINGS[speedMode].spawnInterval);
+        }
+
+        function useHint() {
+            if (isPaused || isLocked || !gameStarted) return;
+            hintLevel++;
+            const isUnitStep = currentStep === 'unit';
+            const target = isUnitStep ? targetU : targetT;
+
+            if (hintLevel === 1) {
+                let text;
+                if (needsBorrow) {
+                    text = isUnitStep
+                        ? `🔍 提示：向 ${t1} 借 1，${u1} 變成 ${u1 + 10}，${u1 + 10} 減 ${u2} 是多少？`
+                        : `🔍 提示：${t1} 被借走 1，只剩 ${t1 - 1}，${t1 - 1} 減 ${t2} 是多少？`;
+                } else {
+                    text = isUnitStep
+                        ? `🔍 提示：${u1} 減 ${u2}，可以用手指數數看！`
+                        : `🔍 提示：${t1} 減 ${t2}，可以用手指數數看！`;
+                }
+                document.getElementById('feedback').innerText = text;
+                speak(text.replace('🔍 提示：', ''));
+            } else {
+                const text = `💡 答案是 ${target}！找找看畫面上這個數字！`;
+                document.getElementById('feedback').innerText = text;
+                speak(`答案是 ${target}，找找看畫面上的這個數字！`);
+                hintActiveValue = target;
+                activeOptions.forEach(opt => { if (opt.dataset.val === String(target)) opt.classList.add('hint-glow'); });
+            }
+        }
+
+        function showCompletionScreen() {
+            document.getElementById('completeEquation').innerText = `${t1}${u1} - ${t2}${u2} = ${targetT}${targetU}`;
+            document.getElementById('completeOverlay').style.display = 'flex';
+        }
+        function hideCompletionScreen() {
+            document.getElementById('completeOverlay').style.display = 'none';
+        }
+
+        const ICECREAM_COLORS = [
+            ['#fda4af', '#e11d48'], ['#93c5fd', '#1d4ed8'], ['#fde047', '#ca8a04'],
+            ['#86efac', '#15803d'], ['#d8b4fe', '#7e22ce'], ['#fdba74', '#c2410c']
+        ];
+        const BUTTERFLY_COLORS = [
+            ['#f0abfc', '#a21caf'], ['#93c5fd', '#1d4ed8'], ['#fde047', '#ca8a04'],
+            ['#86efac', '#15803d'], ['#fda4af', '#e11d48'], ['#fdba74', '#c2410c']
+        ];
+
+        function renderObjectContent(el, val, theme) {
+            if (theme === 'icecream') {
+                const [light, dark] = ICECREAM_COLORS[Math.floor(Math.random() * ICECREAM_COLORS.length)];
+                el.style.setProperty('--icecream-color', light);
+                el.style.setProperty('--icecream-dark', dark);
+                el.innerHTML = `
+                    <div class="cone"></div>
+                    <div class="scoop"></div>
+                    <div class="num-badge"><span class="obj-num">${val}</span></div>
+                `;
+            } else {
+                const [light, dark] = BUTTERFLY_COLORS[Math.floor(Math.random() * BUTTERFLY_COLORS.length)];
+                el.style.setProperty('--butterfly-color', light);
+                el.style.setProperty('--butterfly-dark', dark);
+                el.innerHTML = `
+                    <div class="wing left"></div>
+                    <div class="wing right"></div>
+                    <div class="butterfly-body"></div>
+                    <div class="num-badge"><span class="obj-num">${val}</span></div>
+                `;
+            }
+        }
+
+        function spawnFallingOption(val) {
+            if (isLocked || isPaused) return;
+            const container = document.getElementById('drop-game-container');
+            const el = document.createElement('div');
+            el.className = 'falling-option theme-' + currentTheme;
+            el.dataset.val = String(val);
+            if (hintActiveValue !== null && val === hintActiveValue) el.classList.add('hint-glow');
+
+            renderObjectContent(el, val, currentTheme);
+
+            const objWidth = currentTheme === 'icecream' ? 58 : 66;
+            const randomX = Math.random() * (container.clientWidth - objWidth);
+            el.style.left = randomX + 'px';
+            if (currentTheme === 'icecream') {
+                el.style.animationDuration = SPEED_SETTINGS[speedMode].fallDuration + 's';
+            } else {
+                el.style.animationDuration = SPEED_SETTINGS[speedMode].fallDuration + 's, 0.6s';
+                el.style.animationIterationCount = '1, infinite';
+            }
+            if (isPaused) el.style.animationPlayState = 'paused';
+
+            let isHandled = false;
+            const handleSelect = (e) => {
+                if (e) { e.preventDefault(); e.stopPropagation(); }
+                if (isLocked || isHandled || isPaused) return;
+
+                const isUnitStep = currentStep === 'unit';
+                const target = isUnitStep ? targetU : targetT;
+
+                if (val === target) {
+                    isHandled = true;
+                    isLocked = true;
+                    if (gameInterval) clearInterval(gameInterval);
+
+                    playPopSound();
+                    el.classList.add('popping');
+                    setTimeout(() => el.remove(), 300);
+                    activeOptions.forEach(opt => { if (opt !== el) opt.remove(); });
+                    activeOptions = [];
+                    hintLevel = 0;
+                    hintActiveValue = null;
+
+                    if (isUnitStep) {
+                        document.getElementById('ansU').innerText = targetU;
+
+                        if (needsBorrow) {
+                            document.getElementById('tUp').classList.add('borrowed');
+                            const tUpNew = document.getElementById('tUpNew');
+                            tUpNew.innerText = t1 - 1;
+                            tUpNew.classList.add('show');
+                        }
+
+                        document.getElementById('feedback').innerText = "🎉 個位算對了！接下來算十位數！";
+                        const goTens = () => {
+                            if (isPaused) return;
+                            currentStep = 'tens';
+                            isLocked = false;
+                            highlightColumn('tens');
+                            const text = needsBorrow
+                                ? `步驟二：${t1} 被借走 1，只剩 ${t1 - 1}，請問 ${t1 - 1} 減 ${t2} 等於多少呢？`
+                                : `步驟二：算十位 ${t1} 減 ${t2}，等於多少呢？`;
+                            document.getElementById('stepBanner').innerText = text;
+                            setupFalling();
+                        };
+                        if (needsBorrow) {
+                            speak(`個位算對了，${t1} 被借走 1，只剩 ${t1 - 1}，請問，${t1 - 1} 減 ${t2} 等於多少呢？`, goTens);
+                        } else {
+                            speak(`個位算對了。接下來，請算出十位數相減是多少呢？`, goTens);
+                        }
+                        setTimeout(() => boom(), 100);
+                    } else {
+                        document.getElementById('ansT').innerText = targetT;
+                        score++;
+                        document.getElementById('score').innerText = `已完成: ${score} 關`;
+                        document.getElementById('feedback').innerText = "🌟 太棒了！整題算完了，恭喜過關！";
+                        setTimeout(() => boom(), 100);
+                        showCompletionScreen();
+
+                        speak(`太棒了，整題算完了，恭喜過關！`);
+                        if (nextQuestionTimeout) clearTimeout(nextQuestionTimeout);
+                        nextQuestionTimeout = setTimeout(() => {
+                            if (!isPaused) initQuestion();
+                        }, 4500);
+                    }
+
+                } else {
+                    isHandled = true;
+                    if (isUnitStep) {
+                        speak(needsBorrow ? `再想一想，${u1 + 10} 減 ${u2} 是多少呢？` : `再想一想，${u1} 減 ${u2} 是多少呢？`);
+                    } else {
+                        speak(needsBorrow ? `再想一想，${t1 - 1} 減 ${t2} 是多少呢？` : `再想一想，${t1} 減 ${t2} 是多少呢？`);
+                    }
+                    document.getElementById('feedback').innerText = "❌ 再試一次！";
+                    el.style.transition = "opacity 0.3s";
+                    el.style.opacity = "0";
+                    setTimeout(() => el.remove(), 300);
+                }
+            };
+
+            el.addEventListener('pointerdown', handleSelect);
+            el.addEventListener('animationend', (ev) => {
+                if (ev.animationName === 'floatDown' || ev.animationName === 'floatDown2') {
+                    el.remove();
+                    activeOptions = activeOptions.filter(item => item !== el);
+                }
+            });
+
+            container.appendChild(el);
+            activeOptions.push(el);
+        }
+    </script>
+</body>
+</html>
