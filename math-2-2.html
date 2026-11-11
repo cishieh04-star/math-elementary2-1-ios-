@@ -335,6 +335,25 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
 .chain.train.big .nd{min-width:calc(var(--u)*2.6);font-size:calc(var(--u)*1.5)}
 .opt .cop{display:flex;align-items:center;justify-content:center;font-size:calc(var(--u)*1.35);white-space:nowrap}.opt .cop .sw{width:1em;height:1em}
 .opts.one .opt.pic svg{max-height:calc(var(--u)*7)}
+/* 名師教室：關鍵字 */
+.tkshow{align-items:flex-start;overflow:auto}
+.tkg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:calc(var(--u)*.4);width:100%}
+.tkc{background:#fff;border:.12em solid #0000;border-radius:.6em;padding:.3em .1em;display:flex;flex-direction:column;align-items:center;gap:.1em;box-shadow:0 .15em 0 #c7b99a;color:#222;min-width:0}
+.tkc b{font-size:calc(var(--u)*1.15);line-height:1.2;white-space:nowrap}
+.tkc small{font-size:calc(var(--u)*.72);font-weight:800;border-radius:99px;padding:0 .5em;color:#fff;white-space:nowrap}
+.tk-a small{background:#1864ab}.tk-s small{background:#c92a2a}.tk-t small{background:#2b8a3e}.tk-p small{background:#6741d9}.tk-o small{background:#a8590b}
+.tk-a{border-color:#a5d8ff}.tk-s{border-color:#ffc9c9}.tk-t{border-color:#b2f2bb}.tk-p{border-color:#d0bfff}.tk-o{border-color:#ffd8a8}
+.tkc.sel{background:#fff3b0;box-shadow:0 0 0 .18em #ffb400}
+.tkex{flex:none;display:flex;align-items:center;gap:calc(var(--u)*.6);background:#fff;border-radius:.7em;padding:.35em .7em;box-shadow:0 .12em 0 #c7b99a;min-height:calc(var(--u)*4.2)}
+.tkpic{flex:none;max-width:48%;font-size:calc(var(--u)*1.6);font-weight:900;color:#333;display:flex;flex-wrap:wrap;align-items:center;gap:.15em;line-height:1.2}
+.tkpic span{display:inline-block;animation:pop .45s both}
+.tktx{flex:1;font-weight:800;font-size:calc(var(--u)*1.1);line-height:1.5;color:#222}
+.tktx mark{background:#ffe066;color:#111;border-radius:.2em;padding:0 .1em}
+@media (max-width:430px){.tkg{grid-template-columns:repeat(3,minmax(0,1fr))}.tkex{flex-direction:column;align-items:flex-start}.tkpic{max-width:100%}}
+#clsTabs{display:flex!important;gap:calc(var(--u)*.3)}
+#clsTabs .btn{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:clip}
+
+
 /* landscape */
 @media (min-aspect-ratio:13/10){
  :root{--u:min(2.3vw,3.5vh,23px)}
@@ -581,7 +600,7 @@ mark{background:#ffe066;border-radius:.2em;padding:0 .1em}
 
  <section class="scr" id="class">
   <div class="bar"><button class="btn" id="clsHome">回首頁</button><span class="sp"></span><button class="btn" id="clsPause">暫停</button><button class="btn vbtn"></button></div>
-  <div class="row2"><div class="seg" id="clsTabs" style="flex:1"><button class="btn sel">慢慢教我</button><button class="btn">直式練習機</button><button class="btn">關鍵字小卡</button></div></div>
+  <div class="row2"><div class="seg" id="clsTabs" style="flex:1"><button class="btn sel">慢慢教我</button><button class="btn">直式練習機</button><button class="btn">關鍵字</button></div></div>
   <div class="row2" style="justify-content:flex-end"><div class="spd"><button class="btn spSlow">唸慢一點</button><button class="btn spFast">唸快一點</button></div></div>
   <div class="stage" id="clsStage"></div>
  </section>
@@ -2160,7 +2179,7 @@ function renderClass(){
   $$('#clsTabs .btn').forEach((b,i)=>b.classList.toggle('sel',i===CLS.scene));
   const st=$('#clsStage');lessonStop();stopSeq();clearLater();
   if(CLS.scene===0){lessonStart(st,{keys:ALLKEYS,cls:true})}
-  else if(CLS.scene===1)clsVert(st);else clsKey(st);
+  else if(CLS.scene===1)clsVert(st);else clsTkw(st);
 }
 // 直式練習機：自己選題型，一題一題練
 function clsVert(st){
@@ -2184,6 +2203,27 @@ function clsKey(st){
   $$('.kwc',st).forEach(b=>b.onclick=()=>{if(!guard(300))return;const k=KW[+b.dataset.i];SFX.pop();$$('.kwc',st).forEach(x=>x.classList.toggle('sel',x===b));
     const t=`看到「${k[0]}」，通常用${k[1]==='+'?'加法':'減法'}。例如：${k[2]}`;$('#kwSay').innerHTML=`<span>${esc(t)}</span>`;speakSeq([t.replace('比…多','比他多').replace('比…少','比它少')])});
   speakSeq(['關鍵字小卡。點一張卡片，聽聽看要用加法還是減法。']);
+}
+
+const TKW=[{"k": "一共", "g": "用加法", "c": "a", "m": "看到「一共」，就是把全部合起來，用加法。", "e": "爸爸有3本書，媽媽有5本書，一共有幾本？", "p": "📕📕📕 ＋ 📘📘📘📘📘"}, {"k": "合起來", "g": "用加法", "c": "a", "m": "「合起來」也是用加法。", "e": "紅球36顆、黃球38顆，合起來有幾顆？", "p": "🔴 ＋ 🟡 ➡️ ❓"}, {"k": "再", "g": "變多了", "c": "a", "m": "「再買、再放進去」，東西變多，用加法。", "e": "有47張貼紙，再買5張，有幾張？", "p": "47 ➕ 5"}, {"k": "比…多", "g": "知道少的算多的", "c": "a", "m": "知道少的，要算多的，用加法。", "e": "弟弟有28元，哥哥比弟弟多16元，哥哥有幾元？", "p": "28 ➕ 16"}, {"k": "原來", "g": "把拿走的加回去", "c": "a", "m": "還剩下的，加上拿走的，就是「原來」的。", "e": "吃了12片，還剩24片，原來有幾片？", "p": "24 ➕ 12"}, {"k": "剩下", "g": "用減法", "c": "s", "m": "「剩下」是拿走以後還有多少，用減法。", "e": "有47元，用掉12元，還剩下幾元？", "p": "47 ➖ 12"}, {"k": "用掉", "g": "變少了", "c": "s", "m": "「用掉、吃掉、賣出、送給」，東西變少，用減法。", "e": "一包畫紙35張，用掉6張後，還剩幾張？", "p": "📄 ➖ 6"}, {"k": "比…少", "g": "知道多的算少的", "c": "s", "m": "知道多的，要算少的，用減法。", "e": "紅茶有40瓶，綠茶比紅茶少15瓶，綠茶有幾瓶？", "p": "40 ➖ 15"}, {"k": "便宜", "g": "價錢變少", "c": "s", "m": "「便宜」就是價錢變少了，用減法。", "e": "原來95元，便宜29元，現在賣多少元？", "p": "95 ➖ 29"}, {"k": "相差", "g": "大的減小的", "c": "s", "m": "「相差」就是兩個數差多少，用大的減小的。", "e": "73張和56張，相差幾張？", "p": "73 ➖ 56"}, {"k": "進位", "g": "滿10進1", "c": "o", "m": "個位加起來滿10，就「進位」，寫個位，進1到十位。", "e": "8加5等於13，寫3，進1到十位。", "p": "8＋5 ➡️ 1️⃣3"}, {"k": "退位", "g": "向十位借1", "c": "o", "m": "個位不夠減，就向十位借1，叫做「退位」。", "e": "2減8不夠減，借1，變12減8。", "p": "12－8 ➡️ 4"}];
+/* ---------- 名師教室：關鍵字 ---------- */
+// 每一張卡：k 關鍵字、g 小標籤、c 顏色(a加 s減 t比 p位置 o動手)、m 意思、e 例子、p 圖
+function tkHL(text,k){let h=esc(text);k.split('…').filter(Boolean).forEach(w=>{h=h.split(esc(w)).join(`<mark>${esc(w)}</mark>`)});return h}
+const tkSp=t=>t.replace(/＋/g,'加').replace(/－/g,'減').replace(/＝/g,'等於').replace(/……/g,'').replace(/…/g,'');
+const tkChars=k=>Array.from(k).filter(ch=>/[一-鿿]/.test(ch));
+function clsTkw(st){
+  st.innerHTML=`<div class="say" id="tkSay">點一個關鍵字，聽聽它的意思。</div>
+   <div class="cl-show tkshow"><div class="tkg">${TKW.map((x,i)=>`<button class="tkc tk-${x.c}" data-i="${i}"><b>${esc(x.k)}</b><small>${esc(x.g)}</small></button>`).join('')}</div></div>
+   <div class="tkex" id="tkEx"><div class="tkpic" id="tkPic">👆</div><div class="tktx" id="tkTx">題目裡的關鍵字，會告訴我們要怎麼做。</div></div>`;
+  let cur=-1;
+  const show=(i,sp)=>{const x=TKW[i];cur=i;const b=$$('.tkc',st)[i];
+    $$('.tkc',st).forEach(y=>y.classList.toggle('sel',y===b));
+    $('#tkSay').textContent=x.m;
+    $('#tkPic').innerHTML=x.p.split(' ').map((t,j)=>`<span style="animation-delay:${j*.18}s">${t}</span>`).join('');
+    $('#tkTx').innerHTML='例：'+tkHL(x.e,x.k);
+    if(sp)speakSeq([tkSp(x.m),'例如：'+tkSp(x.e)])};
+  $$('.tkc',st).forEach(b=>b.onclick=()=>{if(!guard(300))return;SFX.pop();show(+b.dataset.i,true)});
+  speakSeq(['關鍵字。題目裡的關鍵字，會告訴我們要怎麼做。點一個關鍵字，聽聽看。']);
 }
 
 /* ---------- 設定、暫停 ---------- */

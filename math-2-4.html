@@ -335,6 +335,25 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
 .chain.train.big .nd{min-width:calc(var(--u)*2.6);font-size:calc(var(--u)*1.5)}
 .opt .cop{display:flex;align-items:center;justify-content:center;font-size:calc(var(--u)*1.35);white-space:nowrap}.opt .cop .sw{width:1em;height:1em}
 .opts.one .opt.pic svg{max-height:calc(var(--u)*7)}
+/* 名師教室：關鍵字 */
+.tkshow{align-items:flex-start;overflow:auto}
+.tkg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:calc(var(--u)*.4);width:100%}
+.tkc{background:#fff;border:.12em solid #0000;border-radius:.6em;padding:.3em .1em;display:flex;flex-direction:column;align-items:center;gap:.1em;box-shadow:0 .15em 0 #c7b99a;color:#222;min-width:0}
+.tkc b{font-size:calc(var(--u)*1.15);line-height:1.2;white-space:nowrap}
+.tkc small{font-size:calc(var(--u)*.72);font-weight:800;border-radius:99px;padding:0 .5em;color:#fff;white-space:nowrap}
+.tk-a small{background:#1864ab}.tk-s small{background:#c92a2a}.tk-t small{background:#2b8a3e}.tk-p small{background:#6741d9}.tk-o small{background:#a8590b}
+.tk-a{border-color:#a5d8ff}.tk-s{border-color:#ffc9c9}.tk-t{border-color:#b2f2bb}.tk-p{border-color:#d0bfff}.tk-o{border-color:#ffd8a8}
+.tkc.sel{background:#fff3b0;box-shadow:0 0 0 .18em #ffb400}
+.tkex{flex:none;display:flex;align-items:center;gap:calc(var(--u)*.6);background:#fff;border-radius:.7em;padding:.35em .7em;box-shadow:0 .12em 0 #c7b99a;min-height:calc(var(--u)*4.2)}
+.tkpic{flex:none;max-width:48%;font-size:calc(var(--u)*1.6);font-weight:900;color:#333;display:flex;flex-wrap:wrap;align-items:center;gap:.15em;line-height:1.2}
+.tkpic span{display:inline-block;animation:pop .45s both}
+.tktx{flex:1;font-weight:800;font-size:calc(var(--u)*1.1);line-height:1.5;color:#222}
+.tktx mark{background:#ffe066;color:#111;border-radius:.2em;padding:0 .1em}
+@media (max-width:430px){.tkg{grid-template-columns:repeat(3,minmax(0,1fr))}.tkex{flex-direction:column;align-items:flex-start}.tkpic{max-width:100%}}
+#clsTabs{display:flex!important;gap:calc(var(--u)*.3)}
+#clsTabs .btn{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:clip}
+
+
 /* landscape */
 @media (min-aspect-ratio:13/10){
  :root{--u:min(2.3vw,3.5vh,23px)}
@@ -611,7 +630,7 @@ mark{background:#ffe066;border-radius:.2em;padding:0 .1em}
 
  <section class="scr" id="class">
   <div class="bar"><button class="btn" id="clsHome">回首頁</button><span class="sp"></span><button class="btn" id="clsPause">暫停</button><button class="btn vbtn"></button></div>
-  <div class="row2"><div class="seg" id="clsTabs" style="flex:1"><button class="btn sel">慢慢教我</button><button class="btn">線段圖機</button><button class="btn">驗算練習機</button></div></div>
+  <div class="row2"><div class="seg" id="clsTabs" style="flex:1"><button class="btn sel">慢慢教我</button><button class="btn">線段圖機</button><button class="btn">驗算練習機</button><button class="btn">關鍵字</button></div></div>
   <div class="row2" style="justify-content:flex-end"><div class="spd"><button class="btn spSlow">唸慢一點</button><button class="btn spFast">唸快一點</button></div></div>
   <div class="stage" id="clsStage"></div>
  </section>
@@ -2248,7 +2267,7 @@ function openClass(){go('class');CLS.scene=0;renderClass();}
 function renderClass(){
   $$('#clsTabs .btn').forEach((b,i)=>b.classList.toggle('sel',i===CLS.scene));
   const st=$('#clsStage');lessonStop();stopSeq();clearLater();
-  if(CLS.scene===0){lessonStart(st,{keys:ALLKEYS,cls:true})}
+  if(CLS.scene===3){clsTkw(st)}else if(CLS.scene===0){lessonStart(st,{keys:ALLKEYS,cls:true})}
   else if(CLS.scene===1)clsSeg(st);else clsCheck(st);
 }
 // 線段圖機：改變兩部分，看四個算式
@@ -2277,6 +2296,27 @@ function clsCheck(st){
     const q1=qV(a,'-',b,{why:`${a}－${b}＝${c}。接著來驗算。`});run(q1,()=>run(q2))};
   $('.ctrl [data-k]',st).onclick=()=>{if(!guard(300))return;SFX.tap();make()};
   make();
+}
+
+const TKW=[{"k": "放進去", "g": "變多，用加法", "c": "a", "m": "「放進去」東西變多，用加法。", "e": "罐子有25顆彈珠，再放進去18顆。", "p": "🫙 ⬅️ 🔮"}, {"k": "拿出來", "g": "變少，用減法", "c": "s", "m": "「拿出來」東西變少，用減法。", "e": "罐子有40顆，拿出來15顆。", "p": "🫙 ➡️ 🔮"}, {"k": "全部", "g": "線段圖的整條", "c": "o", "m": "線段圖上，整條是「全部」。全部＝部分＋部分。", "e": "全部是50，一部分是20。", "p": "▬▬▬▬ 全部"}, {"k": "部分", "g": "線段圖的一段", "c": "o", "m": "線段圖的一段是「部分」。部分＝全部－另一部分。", "e": "一部分是20，另一部分是30。", "p": "▬ ▬"}, {"k": "原來", "g": "問號在最前面", "c": "a", "m": "問「原來有多少」，就把剩下的和拿走的合起來。", "e": "用掉15元，還剩28元，原來有多少元？", "p": "28 ➕ 15"}, {"k": "還要多少", "g": "用減法", "c": "s", "m": "「還要多少才會有」，就用想要的減掉已經有的。", "e": "有36元，還要多少元才有50元？", "p": "50 ➖ 36"}, {"k": "用掉多少", "g": "用減法", "c": "s", "m": "問「用掉多少」，就用原來的減掉剩下的。", "e": "原來60張，剩下24張，用掉幾張？", "p": "60 ➖ 24"}, {"k": "剩下", "g": "用減法", "c": "s", "m": "「剩下」就是拿走以後還有多少。", "e": "有52顆，送出17顆，剩下幾顆？", "p": "52 ➖ 17"}, {"k": "驗算", "g": "檢查答案", "c": "t", "m": "「驗算」就是算完以後檢查。減法的驗算：答案加減數，要等於被減數。", "e": "52－17＝35，驗算：35＋17＝52。", "p": "35 ➕ 17 🟰 52"}, {"k": "填符號", "g": "＋還是－", "c": "o", "m": "「填符號」先想一想：變多填＋，變少填－。", "e": "12和5，合起來是17，要填加號。", "p": "12 ➕ 5 🟰 17"}, {"k": "再", "g": "又變多了", "c": "a", "m": "「再、又」放進去，東西變多，用加法。", "e": "有30顆，再放進12顆。", "p": "30 ➕ 12"}, {"k": "一共", "g": "合起來", "c": "a", "m": "「一共」就是把部分合起來，算出全部。", "e": "紅的18顆，藍的25顆，一共有幾顆？", "p": "18 ➕ 25"}];
+/* ---------- 名師教室：關鍵字 ---------- */
+// 每一張卡：k 關鍵字、g 小標籤、c 顏色(a加 s減 t比 p位置 o動手)、m 意思、e 例子、p 圖
+function tkHL(text,k){let h=esc(text);k.split('…').filter(Boolean).forEach(w=>{h=h.split(esc(w)).join(`<mark>${esc(w)}</mark>`)});return h}
+const tkSp=t=>t.replace(/＋/g,'加').replace(/－/g,'減').replace(/＝/g,'等於').replace(/……/g,'').replace(/…/g,'');
+const tkChars=k=>Array.from(k).filter(ch=>/[一-鿿]/.test(ch));
+function clsTkw(st){
+  st.innerHTML=`<div class="say" id="tkSay">點一個關鍵字，聽聽它的意思。</div>
+   <div class="cl-show tkshow"><div class="tkg">${TKW.map((x,i)=>`<button class="tkc tk-${x.c}" data-i="${i}"><b>${esc(x.k)}</b><small>${esc(x.g)}</small></button>`).join('')}</div></div>
+   <div class="tkex" id="tkEx"><div class="tkpic" id="tkPic">👆</div><div class="tktx" id="tkTx">題目裡的關鍵字，會告訴我們要怎麼做。</div></div>`;
+  let cur=-1;
+  const show=(i,sp)=>{const x=TKW[i];cur=i;const b=$$('.tkc',st)[i];
+    $$('.tkc',st).forEach(y=>y.classList.toggle('sel',y===b));
+    $('#tkSay').textContent=x.m;
+    $('#tkPic').innerHTML=x.p.split(' ').map((t,j)=>`<span style="animation-delay:${j*.18}s">${t}</span>`).join('');
+    $('#tkTx').innerHTML='例：'+tkHL(x.e,x.k);
+    if(sp)speakSeq([tkSp(x.m),'例如：'+tkSp(x.e)])};
+  $$('.tkc',st).forEach(b=>b.onclick=()=>{if(!guard(300))return;SFX.pop();show(+b.dataset.i,true)});
+  speakSeq(['關鍵字。題目裡的關鍵字，會告訴我們要怎麼做。點一個關鍵字，聽聽看。']);
 }
 
 /* ---------- 設定、暫停 ---------- */
