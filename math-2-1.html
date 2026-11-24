@@ -1244,13 +1244,15 @@ function chainFig(L,step,op={}){let r='';const w=58,g=14;L.forEach((v,i)=>{const
   if(i<L.length-1)r+=`<path d="M${x+w/2},38 q${(w+g)/2},-26 ${w+g},0" fill="none" stroke="#e03131" stroke-width="1.6" marker-end="url(#ah)"/>`+T(x+w/2+(w+g)/2,14,step,{fs:12,col:'#e03131',sw:3})});
   return `<svg class="chf" viewBox="0 0 ${6+L.length*(w+g)} 82"><defs><marker id="ah" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0,0L7,3.5L0,7z" fill="#e03131"/></marker></defs>${r}</svg>`}
 /* 一群一群的東西（每10個圈起來） */
-function groupFig(n,em,op={}){const per=10,PR=4,cw=22,gw=5*cw+10,gh=54,top=18;let r='';const G=Math.ceil(n/per),st=op.step==null?.5:op.step;let k=0;
-  for(let g=0;g<G;g++){const cnt=Math.min(per,n-g*per),gx=6+(g%PR)*(gw+8),gy=top+Math.floor(g/PR)*(gh+top+4);
+function groupFig(n,em,op={}){const per=10,PR=4,cw=22,gw=5*cw+10,gh=54,top=18,bot=20,rh=gh+top+bot+4;let r='';const G=Math.ceil(n/per),st=op.step==null?.6:op.step;
+  for(let g=0;g<G;g++){const cnt=Math.min(per,n-g*per),gx=6+(g%PR)*(gw+8),gy=top+Math.floor(g/PR)*rh;
     for(let i=0;i<cnt;i++){const ix=gx+5+(i%5)*cw+cw/2,iy=gy+14+Math.floor(i/5)*24;r+=`<text x="${ix}" y="${iy}" font-size="19" text-anchor="middle" dominant-baseline="central">${em}</text>`;
-      if(cnt<per&&op.ones)r+=`<g class="cpop"${DL((i)*st)}>${T(ix,iy-15,String(g*10+i+1),{fs:10,col:'#1864ab',sw:3})}</g>`}
+      if(cnt<per&&op.ones)r+=`<g class="cpop"${DL(i*st)}>${T(ix,iy-15,String(g*10+i+1),{fs:10,col:'#1864ab',sw:3})}</g>`}
     if(cnt===per&&op.circ)r+=`<rect class="pop1"${DL(op.cnt?0:g*.35)} x="${gx}" y="${gy}" width="${gw}" height="${gh}" rx="16" fill="none" stroke="#e03131" stroke-width="2.4"/>`;
-    if(cnt===per&&op.cnt)r+=`<g class="cpop"${DL(op.cnt===2?0:g*st)}>${T(gx+gw/2,gy-9,String((g+1)*10),{fs:15,col:'#c2255c',sw:3})}</g>`}
-  const rows=Math.ceil(G/PR);return `<svg class="gpf" viewBox="0 0 ${6+Math.min(G,PR)*(gw+8)} ${rows*(gh+top+4)+10}">${r}</svg>`}
+    if(cnt===per&&(op.cnt||op.lab10))r+=`<g class="${op.lab10?'cpop':''}"${op.lab10?DL(g*.3):''}>${T(gx+gw/2,gy-9,`第${g+1}圈：10個`,{fs:11,col:'#495057',sw:3})}</g>`;
+    if(cnt===per&&op.cnt){const d=op.cnt===2?0:g*st;
+      r+=`<g class="cpop"${DL(d+.25)}>${T(gx+gw/2,gy+gh+11,`合起來${(g+1)*10}個`,{fs:12,col:'#c2255c',sw:3})}</g>`}}
+  const rows=Math.ceil(G/PR);return `<svg class="gpf" viewBox="0 0 ${6+Math.min(G,PR)*(gw+8)} ${rows*rh+10}">${r}</svg>`}
 
 /* ---- 算式板：一行一行寫下全部的計算過程 ---- */
 const WK=(fig,lines)=>`<div class="wk"><div class="wkf">${fig}</div><ol class="wkb">${lines.map(([m,n],i)=>`<li data-i="${i}"><span class="wkm">${tokH(m)}</span>${n?`<span class="wkn">${tokH(n)}</span>`:''}</li>`).join('')}</ol></div>`;
@@ -1436,7 +1438,8 @@ function colSum(rows,o={}){rows=rows.filter(v=>v>0);if(rows.length<2)return [];c
 function teachCount(n,em,nm){const g=Math.floor(n/10),o=n%10;return {fig:SW(groupFig(n,em)),items:()=>[
   {t:`${nm}太多了，一隻一隻數，很容易數錯，也很容易漏掉。`,gap:1000,on:r=>swapTo(r,groupFig(n,em))},
   {t:`所以我們每10個圈成一圈，一圈一圈慢慢圈。`,gap:1200+g*350,on:r=>swapTo(r,groupFig(n,em,{circ:1}))},
-  {t:`一圈有10個。現在一圈一圈數，每一圈多10個，看上面紅色的數字：`+Array.from({length:g},(_,i)=>(i+1)*10).join('、')+'。',gap:1000+g*500,on:(r,eq)=>{swapTo(r,groupFig(n,em,{circ:1,cnt:1}));eq(`${g}圈，每圈10個：${g*10}`)}},
+  {t:`每一圈裡面都是10個，不是20個或30個喔！看圈圈上面寫著「10個」。`,gap:1400+g*300,on:r=>swapTo(r,groupFig(n,em,{circ:1,lab10:1}))},
+  {t:`現在一圈一圈加起來，看圈圈下面的紅色數字：`+Array.from({length:g},(_,i)=>`${i+1}圈是${(i+1)*10}個`).join('、')+'。',gap:1000+g*700,on:(r,eq)=>{swapTo(r,groupFig(n,em,{circ:1,cnt:1}));eq(`${g}圈，每圈10個，合起來${g*10}個`)}},
   ...(g>=10?[{t:'10個十，就是100，也就是1個百。',gap:900,on:(r,eq)=>eq('10個十＝100')}]:[]),
   ...(o?[{t:`剩下沒有圈起來的，一個一個數，看上面藍色的數字：`+Array.from({length:o},(_,i)=>g*10+i+1).join('、')+'。',gap:1000+o*500,on:(r,eq)=>{swapTo(r,groupFig(n,em,{circ:1,cnt:2,ones:1}));eq(`再數${o}個：${g*10+1}…${n}`)}}]:[]),
   ...(o?colSum([g*10,o],{u:'個',intro:`也可以用定位板加起來：圈起來的${g*10}個，加上剩下的${o}個。`}):[]),
