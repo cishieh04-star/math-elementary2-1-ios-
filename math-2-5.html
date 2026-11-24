@@ -1012,7 +1012,8 @@ function dailyDone(){try{return _store&&_store.getItem('m25-daily-v1')==String(d
 function setDailyDone(){try{_store&&_store.setItem('m25-daily-v1',String(dayKey()))}catch(e){}}
 
 /* ===== 語音 ===== */
-const TTS={ok:'speechSynthesis' in window&&typeof SpeechSynthesisUtterance!=='undefined',gen:0,mult:1,vo:null,
+function gapMul(){return Math.max(.55,Math.min(1.7,0.6/(S.rate||0.6)))}
+const TTS={saf:/Safari/.test(navigator.userAgent)&&!/Chrome|Chromium|CriOS|Edg|Android/.test(navigator.userAgent),needVo:false,ok:'speechSynthesis' in window&&typeof SpeechSynthesisUtterance!=='undefined',gen:0,mult:1,vo:null,
   stop(){this.gen++;try{this.ok&&speechSynthesis.cancel()}catch(e){}},
   est(t){return Math.max(500,String(t).length*(S.rate<0.7?330:S.rate<0.9?270:210))/(TTS.mult||1)},
   pickVoice(){try{const vs=speechSynthesis.getVoices();this.vo=vs.find(v=>/zh[-_]TW/i.test(v.lang))||vs.find(v=>/zh[-_]Hant/i.test(v.lang))||null}catch(e){}},
@@ -1021,9 +1022,9 @@ const TTS={ok:'speechSynthesis' in window&&typeof SpeechSynthesisUtterance!=='un
     let fin=false;const f=()=>{if(fin)return;fin=true;clearTimeout(tm);done&&done()};
     const tm=setTimeout(f,this.est(text)*1.7+900);
     try{
-      const u=new SpeechSynthesisUtterance(text);u.lang='zh-TW';if(this.vo)u.voice=this.vo;u.rate=S.rate*(TTS.mult||1);u.pitch=1.05;
+      const u=new SpeechSynthesisUtterance(text);u.lang='zh-TW';if(this.vo&&!(TTS.saf&&!TTS.needVo))u.voice=this.vo;u.rate=S.rate*(TTS.mult||1);u.pitch=1.05;
       let st0=false;u.onstart=()=>{st0=true};u.onend=f;u.onerror=f;try{speechSynthesis.resume()}catch(e){}speechSynthesis.speak(u);
-      setTimeout(()=>{if(!st0&&!fin&&gen===TTS.gen){clearTimeout(tm);setTimeout(f,Math.max(400,TTS.est(text)*0.8))}},2200);
+      setTimeout(()=>{if(!st0&&!fin&&gen===TTS.gen){if(TTS.saf)TTS.needVo=true;clearTimeout(tm);setTimeout(f,Math.max(400,TTS.est(text)*0.8))}},2200);
     }catch(e){clearTimeout(tm);setTimeout(f,this.est(text))}
   }
 };
@@ -1044,7 +1045,7 @@ function speakSeq(items,onAll,gap){
     const it=items[st.i],t=typeof it==='string'?it:it.t,on=typeof it==='string'?null:it.on,g=(typeof it!=='string'&&it&&it.gap!=null)?it.gap:gap;
     if(st.called<st.i){st.called=st.i;try{on&&on()}catch(e){console.error(e)}}
     const txt=spoken(t||''),ep=st.ep;
-    const done=()=>{if(gen!==TTS.gen||ep!==st.ep)return;if(SP.paused){st.waiting=true;return}st.i++;later(()=>{if(gen===TTS.gen&&ep===st.ep)next()},g)};
+    const done=()=>{if(gen!==TTS.gen||ep!==st.ep)return;if(SP.paused){st.waiting=true;return}st.i++;later(()=>{if(gen===TTS.gen&&ep===st.ep)next()},g*gapMul())};
     if(!S.voice||!TTS.ok||!txt.trim()){later(done,txt.trim()?(S.voice?TTS.est(txt)*0.5:Math.max(500,TTS.est(txt)*0.45)):150);return}
     TTS.one(txt,gen,done);
   };
